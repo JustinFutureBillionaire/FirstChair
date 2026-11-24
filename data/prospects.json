@@ -1,0 +1,218 @@
+[
+  {
+    "id": "exa",
+    "name": "Exa",
+    "domain": "exa.ai",
+    "segment": "Search infrastructure",
+    "description": "Search and web-data APIs for AI applications.",
+    "initial": "E",
+    "color": "#6F75D6",
+    "persona": "Engineering lead for API monetization",
+    "sources": [
+      {
+        "id": "exa-websets",
+        "title": "Websets v2",
+        "url": "https://exa.ai/blog/websets-v2",
+        "quote": "Usage now draws down from your existing Exa credits",
+        "kind": "price_change",
+        "published": "2026-11-17",
+        "checked": "2026-11-24T19:14:42Z",
+        "source_type": "first_party",
+        "note": "Websets moved from its own subscription to shared credits. That makes cross-product credit accounting relevant. Exa already operates this system.",
+        "verified": true
+      },
+      {
+        "id": "exa-lite",
+        "title": "Introducing Exa 3.0",
+        "url": "https://exa.ai/blog/exa-3",
+        "quote": "our new search type, priced at $4 per 1,000 requests",
+        "kind": "launch",
+        "published": "2026-10-19",
+        "checked": "2026-11-24T19:14:43Z",
+        "source_type": "first_party",
+        "note": "Exa Lite introduced a price per thousand requests. Its unit price is public, while its billing costs and vendor plans are unknown.",
+        "verified": true
+      }
+    ]
+  },
+  {
+    "id": "firecrawl",
+    "name": "Firecrawl",
+    "domain": "firecrawl.dev",
+    "segment": "Web data APIs",
+    "description": "APIs that turn websites into data for AI applications.",
+    "initial": "F",
+    "color": "#D86E3C",
+    "persona": "Product engineering lead for pricing and credits",
+    "sources": [
+      {
+        "id": "firecrawl-pricing",
+        "title": "Plans and credits",
+        "url": "https://www.firecrawl.dev/pricing",
+        "quote": "Credits are consumed for each API request, varying by endpoint and feature.",
+        "kind": "pricing_model",
+        "published": null,
+        "checked": "2026-11-24T19:14:41Z",
+        "source_type": "first_party",
+        "note": "Different endpoints consume different amounts of credit. That makes metering rules relevant. The pricing page does not establish how much the current system costs.",
+        "verified": true
+      },
+      {
+        "id": "firecrawl-mcp",
+        "title": "Firecrawl MCP v3",
+        "url": "https://www.firecrawl.dev/blog/firecrawl-mcp-v3",
+        "quote": "every plan includes free MCP usage that refreshes daily",
+        "kind": "launch",
+        "published": "2026-11-12",
+        "checked": "2026-11-24T19:14:41Z",
+        "source_type": "first_party",
+        "note": "The MCP release adds a daily allowance across plans. Handling that allowance alongside paid credits is a concrete subject for discovery.",
+        "verified": true
+      },
+      {
+        "id": "firecrawl-series-b",
+        "title": "Introducing Alexandria and our Series B",
+        "url": "https://www.firecrawl.dev/blog/introducing-alexandria-series-b",
+        "quote": "We raised a $75M Series B led by Smash Capital",
+        "kind": "funding",
+        "published": "2026-09-22",
+        "checked": "2026-11-24T19:14:41Z",
+        "source_type": "first_party",
+        "note": "Funding and a new product add company context. The announcement discloses neither a billing budget nor an active vendor search.",
+        "verified": true
+      }
+    ]
+  },
+  {
+    "id": "modal",
+    "name": "Modal",
+    "domain": "modal.com",
+    "segment": "Cloud compute",
+    "description": "Serverless compute for AI inference, batch jobs, and developer sandboxes.",
+    "initial": "M",
+    "color": "#59845B",
+    "persona": "Engineering lead for usage and billing",
+    "sources": [
+      {
+        "id": "modal-pricing",
+        "title": "Compute pricing",
+        "url": "https://modal.com/pricing",
+        "quote": "Modal continuously records CPU and memory consumption.",
+        "kind": "pricing_model",
+        "published": null,
+        "checked": "2026-11-24T19:14:44Z",
+        "source_type": "first_party",
+        "note": "CPU and memory consumption are metered. The public rate card establishes billing complexity but does not quantify a potential saving.",
+        "verified": true
+      },
+      {
+        "id": "modal-invoices",
+        "title": "View invoices directly in the Modal dashboard",
+        "url": "https://modal.com/changelog/view-invoices-directly-in-the-modal-dashboard",
+        "quote": "Workspace managers can now view all historical invoices in the new Invoices tab under Usage & Billing.",
+        "kind": "launch",
+        "published": "2026-11-11",
+        "checked": "2026-11-24T19:14:43Z",
+        "source_type": "first_party",
+        "note": "The invoice tab is evidence of recent billing-product work. Modal already ships billing features, so any incremental value would need validation.",
+        "verified": true
+      },
+      {
+        "id": "modal-attribution",
+        "title": "Sandbox cost attribution in the Python SDK",
+        "url": "https://modal.com/changelog/sandbox-cost-attribution-sdk-python",
+        "quote": "The Python SDK now lets you see your spend more granularly.",
+        "kind": "launch",
+        "published": "2026-11-12",
+        "checked": "2026-11-24T19:14:43Z",
+        "source_type": "first_party",
+        "note": "Customer-visible cost attribution makes spend reconciliation a relevant question. The release does not establish a problem with the current implementation.",
+        "verified": true
+      }
+    ]
+  },
+  {
+    "id": "browserbase",
+    "name": "Browserbase",
+    "domain": "browserbase.com",
+    "segment": "Browser infrastructure",
+    "description": "Hosted browser sessions and web APIs for developers.",
+    "initial": "B",
+    "color": "#5A85B2",
+    "persona": "Product lead for developer plans and usage",
+    "sources": [
+      {
+        "id": "browserbase-pricing",
+        "title": "Browserbase pricing",
+        "url": "https://www.browserbase.com/pricing",
+        "quote": "then $0.12/browser hr",
+        "kind": "pricing_model",
+        "published": null,
+        "checked": "2026-11-24T19:14:42Z",
+        "source_type": "first_party",
+        "note": "The Developer plan charges an overage per browser hour. Measuring included usage and overages is relevant. Current operating costs are unknown.",
+        "verified": true
+      },
+      {
+        "id": "browserbase-fetch",
+        "title": "Introducing Authenticated Fetch",
+        "url": "https://www.browserbase.com/blog/introducing-authenticated-fetch",
+        "quote": "Authenticated Fetch is available for no additional cost on every plan",
+        "kind": "launch",
+        "published": "2026-10-27",
+        "checked": "2026-11-24T19:14:45Z",
+        "source_type": "first_party",
+        "note": "The feature extends an existing plan entitlement. Its availability can guide a conversation about packaging, but says nothing about vendor selection.",
+        "verified": true
+      }
+    ]
+  },
+  {
+    "id": "tavily",
+    "name": "Tavily",
+    "domain": "tavily.com",
+    "segment": "Search and research APIs",
+    "description": "Search, extraction, and research APIs for AI applications.",
+    "initial": "T",
+    "color": "#A073A8",
+    "persona": "Product lead for API plans and developer growth",
+    "sources": [
+      {
+        "id": "tavily-pricing",
+        "title": "Billing, credits and usage limits",
+        "url": "https://help.tavily.com/articles/8298987937-billing-credits-usage-limits",
+        "quote": "a basic search uses 1 credit and an advanced search uses 2.",
+        "kind": "pricing_model",
+        "published": null,
+        "checked": "2026-11-24T19:14:41Z",
+        "source_type": "first_party",
+        "note": "Search depth changes the credit cost per request. The published rule supports a metering discussion, while implementation effort is unknown.",
+        "verified": true
+      },
+      {
+        "id": "tavily-october",
+        "title": "What shipped in October",
+        "url": "https://www.tavily.com/blog/what-shipped-october-2026",
+        "quote": "applications for the Tavily for Startups program are open.",
+        "kind": "launch",
+        "published": "2026-11-02",
+        "checked": "2026-11-24T19:14:42Z",
+        "source_type": "first_party",
+        "note": "The launch included startup credits. Tracking grants alongside purchased credits is a plausible use case. Redemption volume and commercial need are unknown.",
+        "verified": true
+      },
+      {
+        "id": "tavily-nebius",
+        "title": "Tavily is joining Nebius",
+        "url": "https://www.tavily.com/blog/tavily-is-joining-nebius",
+        "quote": "Tavily is joining Nebius",
+        "kind": "product",
+        "published": "2026-02-10",
+        "checked": "2026-11-24T19:14:42Z",
+        "source_type": "first_party",
+        "note": "Tavily announced it was joining Nebius. Confirm which team owns commercial tooling before choosing a buyer persona.",
+        "verified": true
+      }
+    ]
+  }
+]

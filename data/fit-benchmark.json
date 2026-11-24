@@ -1,0 +1,126 @@
+{
+  "reviewedOn": "2026-11-24",
+  "rule": "Relevant companies sell developer-facing software or AI infrastructure and publish a consumption-based pricing unit or credit model.",
+  "judgments": [
+    {
+      "name": "Allbirds",
+      "relevant": false,
+      "url": "https://www.allbirds.com/",
+      "reason": "Consumer footwear retailer."
+    },
+    {
+      "name": "AssemblyAI",
+      "relevant": true,
+      "url": "https://www.assemblyai.com/pricing",
+      "reason": "Speech APIs with per-hour pay-as-you-go rates."
+    },
+    {
+      "name": "Browserbase",
+      "relevant": true,
+      "url": "https://www.browserbase.com/pricing",
+      "reason": "Browser infrastructure with browser-hour and proxy usage."
+    },
+    {
+      "name": "Deepgram",
+      "relevant": true,
+      "url": "https://deepgram.com/pricing",
+      "reason": "Voice APIs priced by audio duration, text characters, or connection time."
+    },
+    {
+      "name": "ElevenLabs",
+      "relevant": true,
+      "url": "https://elevenlabs.io/pricing",
+      "reason": "Voice APIs with credit-based consumption tied to characters and minutes."
+    },
+    {
+      "name": "Exa",
+      "relevant": true,
+      "url": "https://exa.ai/blog/websets-v2",
+      "reason": "Web search and data products with shared credits."
+    },
+    {
+      "name": "fal",
+      "relevant": true,
+      "url": "https://fal.ai/pricing",
+      "reason": "Generative media APIs and GPU compute sold by usage."
+    },
+    {
+      "name": "Firecrawl",
+      "relevant": true,
+      "url": "https://www.firecrawl.dev/pricing",
+      "reason": "Web extraction API with credit-priced requests and actions."
+    },
+    {
+      "name": "Levi Strauss",
+      "relevant": false,
+      "url": "https://www.levi.com/US/en_US/",
+      "reason": "Consumer apparel and denim retailer."
+    },
+    {
+      "name": "Modal",
+      "relevant": true,
+      "url": "https://modal.com/pricing",
+      "reason": "Cloud compute rates based on resource consumption."
+    },
+    {
+      "name": "Neon",
+      "relevant": true,
+      "url": "https://neon.com/pricing",
+      "reason": "Developer database service with compute-unit hours."
+    },
+    {
+      "name": "Patagonia",
+      "relevant": false,
+      "url": "https://www.patagonia.com/",
+      "reason": "Consumer outdoor apparel and gear retailer."
+    },
+    {
+      "name": "Pinecone",
+      "relevant": true,
+      "url": "https://www.pinecone.io/pricing/",
+      "reason": "Developer search and vector database products metered in read and write units."
+    },
+    {
+      "name": "Render",
+      "relevant": true,
+      "url": "https://render.com/docs/workflows-limits",
+      "reason": "Developer workflows bill by compute duration and CPU or memory consumed."
+    },
+    {
+      "name": "Replicate",
+      "relevant": true,
+      "url": "https://replicate.com/pricing",
+      "reason": "Model APIs billed by hardware runtime or inputs and outputs."
+    },
+    {
+      "name": "Supabase",
+      "relevant": true,
+      "url": "https://supabase.com/pricing",
+      "reason": "Developer backend platform with metered storage, egress, and active users."
+    },
+    {
+      "name": "Tavily",
+      "relevant": true,
+      "url": "https://help.tavily.com/articles/8298987937-billing-credits-usage-limits",
+      "reason": "Search and extraction APIs priced in credits."
+    },
+    {
+      "name": "Together AI",
+      "relevant": true,
+      "url": "https://www.together.ai/pricing",
+      "reason": "Inference APIs with token and audio-duration pricing."
+    },
+    {
+      "name": "Vercel",
+      "relevant": true,
+      "url": "https://vercel.com/pricing",
+      "reason": "Developer platform with metered CPU, memory, and requests."
+    },
+    {
+      "name": "Warby Parker",
+      "relevant": false,
+      "url": "https://www.warbyparker.com/",
+      "reason": "Consumer eyewear and vision-services retailer."
+    }
+  ]
+}
