@@ -9,6 +9,7 @@ import {Product,Customer,Prospects} from "../components/research";
 import {Account} from "../components/account";
 import {Outreach,Results,Usage} from "../components/operations";
 const localKey="first-chair.workspace.v1";
+const working={product:"Claude is reading your product and drafting the customer profile",profile:"Saving the profile",discover:"Searching the web, reading company pages and checking every quote",case:"Checking credits and approving the numbers",draft:"Planner, Researcher, Analyst, Writer and Reviewer are working on the email",enrich:"Looking up and verifying the email address",graph:"Checking relationship paths",send:"Sending the approved email"};
 const pages=["product","customer","prospects","account","outreach","results","usage"];
 function route(){const value=location.hash.slice(1).split("/").map(s=>{try{return decodeURIComponent(s);}catch{return s;}});return {page:pages.includes(value[0])?value[0]:"product",id:value[1]||null,tab:value[2]||null};}
 export default function Home(){
@@ -44,7 +45,7 @@ export default function Home(){
  },[liveToken,notify]);
  function go(page,id=null,tab=null){const hash=[page,id,tab].filter(Boolean).map(encodeURIComponent).join("/");setDialog("");if(location.hash!=="#"+hash)location.hash=hash;else setView(route());}
  async function act(kind,id,payload={},success){
-   if(!ready||pending.current)return false;pending.current=true;setBusy(true);
+   if(!ready||pending.current)return false;pending.current=true;setBusy(kind);
    try{let data;
      if(api.current){
        const {root,secret}=api.current;const response=await fetch(root+"/api/actions",{method:"POST",headers:{"Content-Type":"application/json",...(secret?{"X-Workspace-Token":secret}:{})},body:JSON.stringify({kind,id,payload,revision:current.current.revision,operation_id:crypto.randomUUID()})});
@@ -95,7 +96,8 @@ export default function Home(){
  {view.page==="results"&&<Results {...stateProps}/>}
  {view.page==="usage"&&<Usage {...stateProps} openConnect={()=>setDialog("connect")}/>}
  </main>
- {busy&&<div className="busy" role="status" aria-label="Working"/>}
+ {busy&&<div className="busy" aria-hidden="true"/>}
+ {busy&&working[busy]&&<div className="working" role="status"><span className="spin-dot"/>{working[busy]}</div>}
  {toast&&<div className={"toast"+(toast.error?" error":"")} role={toast.error?"alert":"status"}>{toast.error?<Activity size={15}/>:<Check size={15}/>}<span>{toast.message}</span><button aria-label="Dismiss" onClick={()=>setToast(null)}><X size={14}/></button></div>}
  {dialog==="connect"&&<Modal title="Connect the live workspace" close={()=>setDialog("")}><form className="stack" onSubmit={e=>{e.preventDefault();localStorage.setItem("fc.operator",connectToken);setLiveToken(connectToken);setConnectToken("");setDialog("");}}><label className="field">Operator token<input type="password" data-focus required autoComplete="off" value={connectToken} onChange={e=>setConnectToken(e.target.value)}/></label><button className="btn primary">Connect</button></form></Modal>}
  </div>;

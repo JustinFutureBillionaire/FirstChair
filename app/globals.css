@@ -286,6 +286,8 @@ details[open] summary{margin-bottom:12px}
 .toast.error{background:var(--stop)}
 .toast button{display:grid;color:#fff;opacity:.7}
 
+.working{position:fixed;left:50%;bottom:24px;z-index:55;display:flex;align-items:center;gap:10px;max-width:calc(100% - 32px);padding:11px 16px;transform:translateX(-50%);background:var(--surface);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 24px rgba(24,32,47,.12);font-size:14px;font-weight:600;animation:toast .3s var(--ease)}
+.spin-dot{flex:none;width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--ink);animation:spin .8s linear infinite}
 @keyframes rise{from{opacity:0;transform:translateY(10px)}}
 @keyframes fade{from{opacity:0}}
 @keyframes grow{from{width:0}}
