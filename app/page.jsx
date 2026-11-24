@@ -10,7 +10,7 @@ import {Account} from "../components/account";
 import {Landing} from "../components/landing";
 import {Outreach,Results,Usage} from "../components/operations";
 const localKey="first-chair.workspace.v1";
-const working={product:"Claude is reading your product and drafting the customer profile",profile:"Saving the profile",discover:"Searching the web, reading company pages and checking every quote",case:"Checking credits and approving the numbers",draft:"Planner, Researcher, Analyst, Writer and Reviewer are working on the email",enrich:"Looking up and verifying the email address",graph:"Checking relationship paths",send:"Sending the approved email"};
+const working={product:"Reading your product and drafting the customer profile",profile:"Saving the profile",discover:"Searching the web, reading company pages and checking every quote",case:"Checking credits and approving the numbers",draft:"Planner, Researcher, Analyst, Writer and Reviewer are working on the email",enrich:"Looking up and verifying the email address",graph:"Checking relationship paths",send:"Sending the approved email"};
 const pages=["home","product","customer","prospects","account","outreach","results","usage"];
 function route(){const value=location.hash.slice(1).split("/").map(s=>{try{return decodeURIComponent(s);}catch{return s;}});return {page:pages.includes(value[0])?value[0]:"home",id:value[1]||null,tab:value[2]||null};}
 export default function Home(){

@@ -349,12 +349,14 @@ details[open] summary{margin-bottom:12px}
 .sp-mail span{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:650;color:var(--go)}
 .how{display:grid;gap:32px;padding:88px 0;border-top:1px solid var(--line)}
 .how h2,.rules h2,.l-end h2{font-size:38px;line-height:1.1;font-weight:780;letter-spacing:-.025em;max-width:20ch}
-.how ol{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:24px;position:relative}
-.how ol::before{content:"";position:absolute;top:15px;left:16px;right:16px;height:1.5px;background:var(--line)}
-.how li{position:relative;display:grid;gap:8px;align-content:start}
-.how li .n{width:32px;height:32px;font-size:14px;box-shadow:0 0 0 6px var(--bg)}
-.how li b{font-size:16px;margin-top:6px}
-.how li p{font-size:14px;color:var(--muted);line-height:1.55}
+.how .lede{margin-top:-16px}
+.how ol{display:grid;border-top:1px solid var(--ink)}
+.how li{display:grid;grid-template-columns:44px minmax(130px,170px) minmax(0,1fr) 210px;gap:20px;align-items:start;padding:22px 0;border-bottom:1px solid var(--line)}
+.how li .n{width:30px;height:30px;font-size:13px}
+.how li b{font-size:18px;line-height:30px}
+.how li p{font-size:15px;color:var(--muted);line-height:1.6;max-width:68ch}
+.uses{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end;padding-top:3px}
+.uses i{font-style:normal;font-size:12.5px;font-weight:650;padding:3px 10px;border-radius:999px;background:var(--surface);border:1px solid var(--line);white-space:nowrap}
 .rules{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:48px;padding:88px 0;border-top:1px solid var(--line)}
 .rules dl{display:grid}
 .rules dl>div{display:grid;grid-template-columns:minmax(150px,.7fr) 1fr;gap:20px;padding:20px 0;border-bottom:1px solid var(--line)}
@@ -370,8 +372,9 @@ details[open] summary{margin-bottom:12px}
   .hero h1{font-size:40px}
   .specimen{transform:none}
   .specimen blockquote{font-size:22px}
-  .how ol{grid-template-columns:1fr}
-  .how ol::before{display:none}
+  .how li{grid-template-columns:30px 1fr;gap:6px 14px}
+  .how li p,.how li .uses{grid-column:2}
+  .uses{justify-content:flex-start}
   .how h2,.rules h2,.l-end h2{font-size:30px}
   .rules{grid-template-columns:1fr;gap:20px}
   .rules dl>div{grid-template-columns:1fr;gap:4px}

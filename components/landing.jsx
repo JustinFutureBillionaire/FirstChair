@@ -3,11 +3,11 @@ import {Check,Lock} from "lucide-react";
 import {Mark,Num} from "./ui";
 
 const steps=[
- ["Describe your product","A few lines on what it does, what it costs, and who already buys it."],
- ["Approve who to target","Each part of the customer profile comes with a confidence and a reason. Nothing is searched until you approve."],
- ["Get companies that need it now","Ranked by fit and by how fresh their buying signal is, each with the line from their own site that proves it."],
- ["See if buying beats building","A build vs. buy case for each company. The math runs in code, and every input shows where it came from."],
- ["Approve the exact email","Five agents draft and check it. You approve the final text, and changing one character asks you again."],
+ ["Product","You enter what the product does, its main capabilities, its price and any existing customers. Each capability is rewritten as the result a buyer pays for.",["AI model"]],
+ ["Ideal customer","The AI model proposes who should buy: segment, company size, buyer role, buying signals and exclusions, each with a confidence and a reason. If you list customers, it looks for what they have in common. You edit and approve. Nothing is searched before that.",["AI model"]],
+ ["Prospects","Tavily searches the web for candidate companies, then searches each company's own site. The AI model pulls short quotes about pricing, launches, funding or hiring, and a quote is kept only if its exact words are found again on a fresh copy of the page. Companies are ranked by fit plus a buying signal that loses weight as it ages, times evidence strength. For each company, code compares building in-house with buying, and Hunter can find the buyer's verified email.",["Tavily","AI model","Code","Hunter, optional"]],
+ ["Outreach","Five agents pass the job along in a Band room. The Planner sets the budget, the Researcher re-checks the quotes, the Analyst adds the approved numbers, the Writer drafts, and the Reviewer sends back any claim a source does not support. You approve the exact text, and changing one character asks you again.",["Band","AI model"]],
+ ["Results","The approved email goes to your test inbox. Flexprice checks the credit balance before every paid action, records the usage, and blocks the action at zero. The pipeline tracks each account's stage, conversion by tier and route, and how many of the top five picks were right.",["Flexprice","Gmail, optional"]],
 ];
 const rules=[
  ["Every quote is read twice","A claim only counts after its exact words are found again on a fresh copy of the page."],
@@ -40,8 +40,9 @@ export function Landing({go,s}){
   </section>
 
   <section className="how" id="how">
-   <h2>From a product brief to an approved email</h2>
-   <ol>{steps.map(([t,d],i)=><li key={t}><span className="n">{i+1}</span><b>{t}</b><p>{d}</p></li>)}</ol>
+   <h2>How it works</h2>
+   <p className="lede">Five steps, the same ones you see at the top of the app.</p>
+   <ol>{steps.map(([t,d,uses],i)=><li key={t}><span className="n">{i+1}</span><b>{t}</b><p>{d}</p><span className="uses">{uses.map(u=><i key={u}>{u}</i>)}</span></li>)}</ol>
   </section>
 
   <section className="rules" id="rules">
@@ -52,7 +53,7 @@ export function Landing({go,s}){
   <section className="l-end">
    <h2>Try it on the example, or on your own product.</h2>
    <button className="btn primary big" onClick={start}>Start with my product</button>
-   <p className="hint">Built with Claude, Tavily, Band and Flexprice.</p>
+   <p className="hint">Built with Tavily, Band and Flexprice.</p>
   </section>
  </div>;
 }
