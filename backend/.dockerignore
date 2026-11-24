@@ -1,0 +1,11 @@
+node_modules
+.git
+.next
+out
+.local
+.venv
+.env
+.env.*
+*.sqlite*
+**/__pycache__
+demo
