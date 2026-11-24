@@ -51,6 +51,17 @@ class WorkspaceApiTest(unittest.TestCase):
             providers.meter({"id":"stable","kind":"graph_query","at":"2026-11-24T19:00:00Z","agent":"Researcher","account":"exa","cost":1})
             body=send.call_args.kwargs["json"];self.assertEqual(body["event_id"],"stable");self.assertEqual(body["properties"]["credits"],"1")
 
+    def test_live_mode_falls_back_per_service(self):
+        off={k:False for k in providers.CONFIG}
+        with patch.object(api,"LIVE",True),patch.object(providers,"configured",return_value=off):
+            s=self.client.get("/api/workspace").json();self.assertEqual(s["mode"],"live");self.assertEqual(s["accounts"],[])
+            seq=[("profile",None,{"approved":True,"fields":s["icp"]["fields"]}),("discover",None,{}),("enrich","exa",{}),("graph","exa",{"name":"warm"}),
+                 ("case","exa",{"approve":True}),("draft","exa",{}),("approve","exa",{}),("send","exa",{})]
+            for i,(kind,id,payload) in enumerate(seq):
+                r=self.send(kind,i,id=id,payload=payload);self.assertEqual(r.status_code,200,kind+": "+r.text)
+            s=r.json();self.assertEqual(s["outbox"][0]["method"],"Local test outbox");self.assertEqual(next(a for a in s["accounts"] if a["id"]=="exa")["stage"],"Contacted")
+            self.assertEqual(self.client.post("/api/meter/retry").json()["pending"],0)
+
     def test_title_normalization(self):
         for title in ("VP Engineering","Head of Eng","CTO"): self.assertEqual(providers.role_bucket(title),"eng_leader")
         self.assertEqual(providers.role_bucket("Co-founder"),"founder");self.assertEqual(providers.role_bucket("Designer"),"other")

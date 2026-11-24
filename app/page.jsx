@@ -25,15 +25,16 @@ export default function Home(){
    (async()=>{
      let local;try{const saved=JSON.parse(localStorage.getItem(localKey));if(saved?.version===1&&saved.product&&saved.icp&&Array.isArray(saved.accounts))local=saved;}catch{}
      let root=process.env.NEXT_PUBLIC_API_URL||"";
-     const secret=liveToken||sessionStorage.getItem("fc.operator")||"";
+     const secret=liveToken||localStorage.getItem("fc.operator")||"";
      try{
        const resp=await fetch(root+"/api/status",{signal:AbortSignal.timeout(2500)});
        if(resp.ok && resp.headers.get("content-type")?.includes("application/json")){
          const status=await resp.json();if(alive)setProviders(status);
+         if(status.service==="first-chair" && status.requiresToken && !secret && alive)setDialog("connect");
          if(status.service==="first-chair" && (!status.requiresToken || secret)){
            const a=await fetch(root+"/api/workspace",{headers:secret?{"X-Workspace-Token":secret}:{}});
            if(a.ok){const data=await a.json();if(alive){api.current={root,secret};current.current=data;setS(data);setReady(true);}return;}
-           if(secret&&alive)notify("The workspace token was not accepted.",true);
+           if(secret&&alive){notify("The workspace token was not accepted.",true);localStorage.removeItem("fc.operator");setDialog("connect");}
          }
        }
      }catch{}
@@ -96,6 +97,6 @@ export default function Home(){
  </main>
  {busy&&<div className="busy" role="status" aria-label="Working"/>}
  {toast&&<div className={"toast"+(toast.error?" error":"")} role={toast.error?"alert":"status"}>{toast.error?<Activity size={15}/>:<Check size={15}/>}<span>{toast.message}</span><button aria-label="Dismiss" onClick={()=>setToast(null)}><X size={14}/></button></div>}
- {dialog==="connect"&&<Modal title="Connect the live workspace" close={()=>setDialog("")}><form className="stack" onSubmit={e=>{e.preventDefault();sessionStorage.setItem("fc.operator",connectToken);setLiveToken(connectToken);setConnectToken("");setDialog("");}}><label className="field">Operator token<input type="password" data-focus required autoComplete="off" value={connectToken} onChange={e=>setConnectToken(e.target.value)}/></label><button className="btn primary">Connect</button></form></Modal>}
+ {dialog==="connect"&&<Modal title="Connect the live workspace" close={()=>setDialog("")}><form className="stack" onSubmit={e=>{e.preventDefault();localStorage.setItem("fc.operator",connectToken);setLiveToken(connectToken);setConnectToken("");setDialog("");}}><label className="field">Operator token<input type="password" data-focus required autoComplete="off" value={connectToken} onChange={e=>setConnectToken(e.target.value)}/></label><button className="btn primary">Connect</button></form></Modal>}
  </div>;
 }

@@ -77,7 +77,7 @@ def workspace(db):
     if row: return json.loads(row["data"])
     s=js("initial",context={"live":LIVE})
     if LIVE:
-        s.update(mode="live",demoInbox=providers.env("FIRSTCHAIR_TEST_INBOX"),credits=int(os.getenv("FIRSTCHAIR_CAMPAIGN_CREDITS","10")))
+        s.update(mode="live",demoInbox=providers.env("FIRSTCHAIR_TEST_INBOX") or "team@example.test",credits=int(os.getenv("FIRSTCHAIR_CAMPAIGN_CREDITS","10")))
         s["icp"]["approved"]=False
     save(db,s)
     return s
@@ -242,17 +242,18 @@ def perform(item:Action):
             if not LIVE:
                 persist_command(db,key,a,preview)
                 return preview
-            if bill:
+            # Each step uses its live service when configured and the offline rule otherwise.
+            on=providers.configured()
+            if bill and on["flexprice"]:
                 avail=providers.gate(*bill);s["credits"]=min(s["credits"],avail)
-            if item.kind=="product": context["icp"]=providers.infer(item.payload,js("profile",action=a))
-            if item.kind=="discover":
+            if item.kind=="product" and on["anthropic"]: context["icp"]=providers.infer(item.payload,js("profile",action=a))
+            if item.kind=="discover" and on["tavily"] and on["anthropic"]:
                 context.update(liveDiscovery=True,prospects=providers.discover(s))
             acct=next((x for x in s["accounts"] if x["id"]==item.id),None)
-            if item.kind=="graph": context["graphMatches"]=graph.query(s,acct,item.payload["name"])
-            if item.kind=="enrich": context["contact"]=providers.enrich(acct)
-            if item.kind=="draft": return band_start(db,s,a,key)
-            if item.kind=="send":
-                providers.require("gmail")
+            if item.kind=="graph" and on["neo4j"]: context["graphMatches"]=graph.query(s,acct,item.payload["name"])
+            if item.kind=="enrich" and on["hunter"]: context["contact"]=providers.enrich(acct)
+            if item.kind=="draft" and on["band"] and on["tavily"]: return band_start(db,s,a,key)
+            if item.kind=="send" and on["gmail"]:
                 msg=s["messages"][item.id];fingerprint=msg["approval"]["hash"]
                 prior=db.execute("SELECT state FROM dispatch WHERE fingerprint=?",(fingerprint,)).fetchone()
                 if prior: raise HTTPException(409,"A delivery already exists or needs reconciliation in the team inbox.")
@@ -262,9 +263,10 @@ def perform(item:Action):
                 context["gmail"]=True
             updated=js("apply",s,a,context)
             persist_command(db,key,a,updated)
-            if bill: db.execute("INSERT INTO events VALUES(?,?,0)",(key,json.dumps(updated["usage"][0])))
+            metered=bill and on["flexprice"]
+            if metered: db.execute("INSERT INTO events VALUES(?,?,0)",(key,json.dumps(updated["usage"][0])))
             db.commit()
-            if bill: flush_events(db)
+            if metered: flush_events(db)
             return updated
     except providers.ProviderError as exc:
         raise HTTPException(424,str(exc)) from None
