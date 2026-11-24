@@ -1,0 +1,22 @@
+{
+  "name": "first-chair",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --webpack",
+    "start": "python3 -m uvicorn backend.app:app --host 127.0.0.1 --port 8400",
+    "test": "node --test tests/*.test.mjs",
+    "band": "node scripts/band.mjs"
+  },
+  "dependencies": {
+    "@band-ai/sdk": "2.0.1",
+    "@fontsource-variable/newsreader": "^5.3.0",
+    "@fontsource-variable/schibsted-grotesk": "^5.3.0",
+    "lucide-react": "1.79.0",
+    "next": "16.4.6",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

@@ -2,3 +2,13 @@
 .env
 .env.*
 node_modules/
+
+.next/
+out/
+dist/
+.local/
+.venv/
+__pycache__/
+*.py[cod]
+*.sqlite*
+!.env.example
