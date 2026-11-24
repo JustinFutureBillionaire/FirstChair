@@ -7,14 +7,15 @@ import {orderedAccounts} from "../lib/scoring.mjs";
 import {Mark,Modal} from "../components/ui";
 import {Product,Customer,Prospects} from "../components/research";
 import {Account} from "../components/account";
+import {Landing} from "../components/landing";
 import {Outreach,Results,Usage} from "../components/operations";
 const localKey="first-chair.workspace.v1";
 const working={product:"Claude is reading your product and drafting the customer profile",profile:"Saving the profile",discover:"Searching the web, reading company pages and checking every quote",case:"Checking credits and approving the numbers",draft:"Planner, Researcher, Analyst, Writer and Reviewer are working on the email",enrich:"Looking up and verifying the email address",graph:"Checking relationship paths",send:"Sending the approved email"};
-const pages=["product","customer","prospects","account","outreach","results","usage"];
-function route(){const value=location.hash.slice(1).split("/").map(s=>{try{return decodeURIComponent(s);}catch{return s;}});return {page:pages.includes(value[0])?value[0]:"product",id:value[1]||null,tab:value[2]||null};}
+const pages=["home","product","customer","prospects","account","outreach","results","usage"];
+function route(){const value=location.hash.slice(1).split("/").map(s=>{try{return decodeURIComponent(s);}catch{return s;}});return {page:pages.includes(value[0])?value[0]:"home",id:value[1]||null,tab:value[2]||null};}
 export default function Home(){
  const [s,setS]=useState(()=>initialState(seed)), current=useRef(s);current.current=s;
- const [view,setView]=useState({page:"product",id:null,tab:null}),[ready,setReady]=useState(false),[busy,setBusy]=useState(false);
+ const [view,setView]=useState({page:"home",id:null,tab:null}),[ready,setReady]=useState(false),[busy,setBusy]=useState(false);
  const [toast,setToast]=useState(null),[dialog,setDialog]=useState("");
  const [providers,setProviders]=useState({}),api=useRef(null), pending=useRef(false);
  const [connectToken,setConnectToken]=useState(""), [liveToken,setLiveToken]=useState("");
@@ -83,8 +84,9 @@ export default function Home(){
  ];
  const here={account:"prospects"}[view.page]||view.page, at=steps.findIndex(x=>x.key===here);
  const stateProps={s,act,go,notify,busy,ready,ranked,selected,view,providers};
+ if(view.page==="home")return <><Landing go={go} s={s}/>{dialog==="connect"&&<Modal title="Connect the live workspace" close={()=>setDialog("")}><form className="stack" onSubmit={e=>{e.preventDefault();localStorage.setItem("fc.operator",connectToken);setLiveToken(connectToken);setConnectToken("");setDialog("");}}><label className="field">Operator token<input type="password" data-focus required autoComplete="off" value={connectToken} onChange={e=>setConnectToken(e.target.value)}/></label><button className="btn primary">Connect</button></form></Modal>}</>;
  return <div className="app">
- <header className="bar"><button className="brand" onClick={()=>go("product")}><Mark/><span>First Chair</span></button>
+ <header className="bar"><button className="brand" onClick={()=>go("home")}><Mark/><span>First Chair</span></button>
   <nav className="stepper" aria-label="Steps" style={{"--at":Math.max(0,at)}}>{steps.map((x,i)=><button key={x.key} disabled={x.open===false} aria-current={i===at?"step":undefined} className={(i===at?"here ":"")+(x.done?"done":"")} onClick={()=>go(x.key)}><span className="dot">{x.done&&i!==at?<Check size={11} strokeWidth={3}/>:i+1}</span><span className="label">{x.label}</span></button>)}<span className="track" aria-hidden="true"><i/></span></nav>
   <button className={"credits"+(view.page==="usage"?" here":"")} onClick={()=>go("usage")} aria-label={s.credits+" credits left. Open usage."}><b key={s.credits}>{s.credits}</b> credits</button></header>
  <main id="main" className="main" key={view.page+":"+(view.id||"")}>
