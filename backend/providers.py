@@ -74,7 +74,7 @@ def json_model(instruction, payload, limit=2200):
 
 
 def infer(product, baseline):
-    result=json_model("Infer an ideal customer profile for this product. For each field in template, return a value (string), confidence from 0 to 1, and an honest one-sentence reason. Return two adjacent expansion segments with name and reason. Identify assumptions. Never invent customer relationships.", {"product":product,"template":baseline})
+    result=json_model("Infer an ideal customer profile for this product. If existing customers are listed, first find what they share (segment, stage, pricing model, stack) and build a lookalike profile from those traits; otherwise use public evidence of the problem. For each field in template, return a value (string), confidence from 0 to 1, and an honest one-sentence reason. Return two adjacent expansion segments with name and reason. Identify assumptions. Never invent customer relationships.", {"product":product,"template":baseline})
     for key,field in baseline["fields"].items():
         supplied=result.get("fields",{}).get(key,{})
         if isinstance(supplied,dict) and isinstance(supplied.get("value"),str):
@@ -86,6 +86,32 @@ def infer(product, baseline):
     if len(proposals)>=2:
         baseline["expansions"]=proposals[:2]
     return baseline
+
+
+def money(x):
+    return ("-" if x<0 else "")+"${:,.0f}".format(abs(x))
+
+
+def write_draft(packet, prior):
+    """Writer agent: Claude drafts the email from verified excerpts and the approved case. The Reviewer checks it in code."""
+    acct=packet["account"]; fin=packet["financial"]
+    sources=[{"id":s["id"],"title":s.get("title"),"quote":s["quote"],"kind":s["kind"],"published":s.get("published")} for s in acct["sources"] if s.get("verified")]
+    figures={k:money(fin[k]) for k in ("net","cashNet","build","buy") if isinstance(fin.get(k),(int,float))}
+    result=json_model("You are the Writer agent for a B2B outreach tool. Write a short first-touch email (under 120 words) from the seller to the buyer persona. "
+        "Open with one specific, recent fact from the supplied sources. Tie it to one seller capability. If you mention money, use only the supplied figures and phrase them conditionally (for example 'under the build assumptions we modeled'). "
+        "Do not claim the company plans to switch vendors or has budget. No links. Match tone and length to the persona. End with one low-friction question. "
+        "For every factual statement about the company, add a claim object whose quote is copied exactly from that source's quote. "
+        "If reviewer feedback is supplied, fix exactly that problem. Return {subject, body, claims:[{text, source, quote}]}.",
+        {"seller":{k:packet["product"].get(k) for k in ("name","description","capabilities","pricing")},
+         "account":{"name":acct["name"],"persona":acct.get("persona"),"route":acct.get("route")},
+         "sources":sources,"figures":figures,"previous_draft":{k:prior.get(k) for k in ("subject","body")} if prior.get("revision") else None,
+         "reviewer_feedback":prior.get("feedback")},limit=1500)
+    subject=str(result.get("subject") or "").strip()[:200]; body=str(result.get("body") or "").strip()[:4000]
+    if not subject or not body: raise ProviderError("The Writer agent returned an empty draft.")
+    claims=[{"text":str(c.get("text",""))[:300],"source":str(c.get("source","")),"quote":str(c.get("quote",""))[:300]} for c in result.get("claims",[]) if isinstance(c,dict)][:6]
+    used=sorted({c["source"] for c in claims if c["source"]}) or [s["id"] for s in sources[:1]]
+    return {"next":"REVIEWER","summary":("Revised the draft after review." if prior.get("revision") else "Drafted outreach from "+str(len(claims))+" sourced claims."),
+            "subject":subject,"body":body,"claims":claims,"sourceIds":used,"revisions":prior.get("revisions",0)}
 
 
 def tavily(path, body):
@@ -118,7 +144,7 @@ def discover(state):
         for item in tavily("search",{"query":query[:390],"max_results":15,"search_depth":"basic"}).get("results",[]):
             if site_url(item.get("url")): found[item["url"]]=str(item.get("content",""))[:1100]
     if not found: return []
-    shortlist=json_model("Select up to five distinct prospect companies from the supplied results. Each needs name, domain, segment, description, inferred buyer role (persona), and one or two exact supplied URLs on that company's own domain. Exclude the seller, agencies publishing lists, news aggregators, and sources without a specific company. Return {accounts:[...]}.",{"seller":product["name"],"profile":fields,"results":found})
+    shortlist=json_model("Select up to five distinct prospect companies from the supplied results. Each needs name, domain, segment, description, inferred buyer role (persona), size (employee range like '11-50 employees', or null if unknown), region (headquarters country, or null), and one or two exact supplied URLs on that company's own domain. Exclude the seller, agencies publishing lists, news aggregators, and sources without a specific company. Return {accounts:[...]}.",{"seller":product["name"],"profile":fields,"results":found})
     rows=[]; seen=set()
     kinds={"hiring","price_change","executive","funding","dissatisfaction","launch","negative","pricing_model","product"}
     for candidate in shortlist.get("accounts",[])[:5]:
@@ -146,7 +172,7 @@ def discover(state):
             accountsources.append(evidence)
         if accountsources:
             name=str(candidate.get("name") or domain)[:80]
-            rows.append({"id":domain.replace(".","-"),"domain":domain,"name":name,"description":str(candidate.get("description",""))[:250],"segment":str(candidate.get("segment","Software"))[:80],"persona":str(candidate.get("persona","Operations lead"))[:100],"initial":name[:1],"color":"#55775d","sources":accountsources})
+            rows.append({"id":domain.replace(".","-"),"domain":domain,"name":name,"description":str(candidate.get("description",""))[:250],"segment":str(candidate.get("segment","Software"))[:80],"persona":str(candidate.get("persona","Operations lead"))[:100],"size":str(candidate.get("size") or "")[:40] or None,"region":str(candidate.get("region") or "")[:60] or None,"initial":name[:1],"color":"#55775d","sources":accountsources})
             seen.add(domain)
     return rows
 
@@ -187,6 +213,16 @@ def meter(event):
     flex("POST","events",json={"event_id":event["id"],"event_name":event["kind"],"external_customer_id":env("FLEXPRICE_EXTERNAL_CUSTOMER_ID"),"source":"first-chair","timestamp":event["at"],"properties":{"agent":event["agent"],"account_id":event["account"],"credits":str(event["cost"])}})
 
 
+ROLE_BUCKETS=[("eng_leader",r"\b(cto|vp\W+eng\w*|head of eng\w*|engineering (manager|lead|director)|director of eng\w*)\b"),
+    ("founder",r"\b(founder|co-?founder|ceo)\b"),("finance",r"\b(cfo|finance|revenue|billing)\b"),("product",r"\b(product|cpo)\b")]
+
+
+def role_bucket(title):
+    """'VP Engineering' and 'Head of Eng' both become eng_leader."""
+    t=str(title or "").lower()
+    return next((name for name,pattern in ROLE_BUCKETS if re.search(pattern,t)),"other")
+
+
 def enrich(account):
     require("hunter")
     domain=account["domain"]; key=env("HUNTER_API_KEY")
@@ -197,7 +233,7 @@ def enrich(account):
         email=item["value"]
         result=request("GET","https://api.hunter.io/v2/email-verifier",params={"email":email,"api_key":key}).get("data",{})
         if result.get("status")=="valid" or result.get("result")=="deliverable":
-            return {"email":email,"status":"Verified","role":item.get("position") or account["persona"],"source":"Hunter"}
+            return {"email":email,"status":"Verified","role":item.get("position") or account["persona"],"bucket":role_bucket(item.get("position") or account["persona"]),"source":"Hunter"}
     return {"email":None,"status":"Uncertain","role":account["persona"],"source":"Hunter"}
 
 

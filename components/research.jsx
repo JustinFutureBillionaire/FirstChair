@@ -1,37 +1,86 @@
 "use client";
-import {useState} from "react";
-import {Activity, ArrowDownUp, ArrowRight, ArrowUpRight, Bookmark, BookOpen, Building2, CalendarDays, CheckCheck, CircleDollarSign, ClipboardCheck, FileCheck2, Filter, Layers3, ListFilter, Network, Radar, RefreshCw, ScanLine, Search, ShieldCheck, Sparkles, Target} from "lucide-react";
-import {asset,Chip,Company,DateText,Empty,LinkButton,PageHead,ScoreTrack,SectionHead,Tier} from "./ui";
-import {featureSource} from "../lib/workspace.mjs";
-import {signalLabels} from "../lib/scoring.mjs";
-export function Table({rows,go,compact=false}){
- if(!rows.length)return <Empty title="No matching prospects" icon={FolderIcon}>Adjust the filters or review your target profile and run discovery.</Empty>;
- return <div className="table-scroll"><table className={"prospect-table "+(compact?"compact-table":"")}><thead><tr><th>Company</th>{!compact&&<th>Latest evidence</th>}<th>Priority</th><th>Tier</th>{!compact&&<th>Pipeline</th>}<th><span className="sr">Open account</span></th></tr></thead><tbody>{rows.map(a=><tr key={a.id} onClick={()=>go("account",a.id)}><td><button className="account-name" onClick={e=>{e.stopPropagation();go("account",a.id);}}><Company a={a}/><span><strong>{a.name}</strong><small>{a.segment}</small></span></button></td>{!compact&&<td><span className="signal-title">{featureSource(a)?.title||"Fit only"}</span></td>}<td><ScoreTrack score={a.scoring.priority}/></td><td><Tier value={a.scoring.tier}/></td>{!compact&&<td>{a.stage}</td>}<td><ArrowUpRight className="row-arrow" size={15}/></td></tr>)}</tbody></table></div>;
+import {useCallback,useEffect,useState} from "react";
+import {Check,LoaderCircle} from "lucide-react";
+import {Chip,Company,DateText,Num,Tier,reduced} from "./ui";
+import {benefitMap,defaultProduct,featureSource} from "../lib/workspace.mjs";
+
+const intake=[
+ ["name","Product name","input"],
+ ["description","What it does","textarea"],
+ ["capabilities","Main capabilities, one per line","textarea"],
+ ["pricing","Pricing","input"],
+ ["customers","Existing customers (optional)","input"],
+ ["constraints","Markets you want, or want to avoid (optional)","input"],
+];
+
+export function Product({s,act,go,busy}){
+ const [p,setP]=useState({...s.product});
+ const changed=JSON.stringify(p)!==JSON.stringify(s.product), example=s.product.name===defaultProduct.name;
+ async function build(e){e.preventDefault();if(await act("product",null,p))go("customer","new");}
+ return <section className="screen product">
+  <div className="intro"><h1>What are you selling?</h1>
+  <p className="lede">Describe the product the way you would to a new sales hire. First Chair works out who should buy it, finds those companies, and drafts the first email.</p>
+  {example&&<p className="hint">Filled in with an example product, Flexprice. Replace it with yours, or run the example as is.</p>}</div>
+  <form className="intake" onSubmit={build}>
+   {intake.map(([k,label,kind])=><label key={k} className="field">{label}{kind==="textarea"?<textarea rows={k==="capabilities"?3:2} required={k==="description"||k==="capabilities"} value={p[k]} onChange={e=>setP({...p,[k]:e.target.value})}/>:<input required={k==="name"} value={p[k]} onChange={e=>setP({...p,[k]:e.target.value})}/>}</label>)}
+   <div className="row">
+    <button className="btn primary" disabled={busy}>Build my customer profile</button>
+    {s.icp.approved&&!changed&&<button type="button" className="btn" onClick={()=>go("prospects")}>Keep the current run</button>}
+   </div>
+   {s.accounts.length>0&&<p className="hint">Building a new profile starts a new run and clears the current prospects and drafts.</p>}
+  </form>
+  <aside className="benefits" aria-live="polite"><h2>How a buyer will hear it</h2><p className="hint">Each capability, rewritten as the result a buyer pays for. It updates as you type.</p>{benefitMap(p).map((x,i)=><p key={x.feature+i} className="benefit"><b>{x.feature}</b><span>{x.benefit}</span></p>)}</aside>
+ </section>;
 }
-const FolderIcon=Layers3;
-export function Overview({s,go,ranked,act,busy,ready}){
- const top=(s.mode==="rehearsal"&&ranked.find(a=>a.id==="exa"))||ranked[0];
- const signal=top&&featureSource(top);
- const sourceCount=top?.sources.filter(source=>source.verified).length||0;
- const events=ranked.flatMap(a=>a.sources.filter(p=>p.verified&&p.published).map(p=>({p,a}))).sort((x,y)=>y.p.published.localeCompare(x.p.published));
- const open=Object.values(s.messages).filter(m=>m.status==="Pending").length;
- const stats=[[Building2,"Prospects",ranked.length,"prospects"],[ShieldCheck,"Checked sources",ranked.reduce((n,a)=>n+a.sources.filter(source=>source.verified).length,0),"prospects"],[CircleDollarSign,"Approved cases",Object.values(s.reviewedCases).filter(Boolean).length,"cases"],[FileCheck2,"Drafts to review",open,"outreach"]];
- return <>
- <PageHead title="Opportunity desk" sub={"Your research and outreach for "+s.product.name+"."}>{s.mode==="live"?<button className="btn primary" onClick={()=>go("profile")}><Target size={16}/>Review target profile</button>:<button className="btn primary" onClick={()=>go("demo")}><BookOpen size={16}/>Start walkthrough</button>}</PageHead>
- <div className="briefing-card"><div className="brief-copy"><div className="eyebrow feature-label"><i/>Campaign briefing</div>
- <h2>{top?<>A closer look at <em>{top.name}.</em></>:<>Find your next <em>customer.</em></>}</h2>
- <p>{signal?.note||(top?"Review this account’s fit, buyer role, and business case.":"Describe your product and approve the customer profile to start researching prospects.")}</p>
- <div className="brief-actions"><button className="btn dark" onClick={()=>top?go("account",top.id):go("profile")}>{top?"Open account brief":"Set up campaign"}<ArrowRight size={15}/></button>{signal&&<button className="source-count source-shortcut" onClick={()=>go("account",top.id,"Evidence")}><ShieldCheck size={14}/>{sourceCount} checked {sourceCount===1?"source":"sources"}<ArrowUpRight size={12}/></button>}</div></div>
- <div className="chair-plate"><span className="registration tl"/><span className="registration tr"/><span className="registration bl"/><span className="registration br"/><img src={asset("first-chair-engraving.webp")} alt="" fetchPriority="high"/><span className="plate-caption">FIRST CHAIR &nbsp; / &nbsp; FIELD NOTES</span></div></div>
- <div className="stats-strip">{stats.map(([Icon,label,value,target])=><button key={label} onClick={()=>go(target)}><span className="stat-icon"><Icon size={17}/></span><span><small>{label}</small><b>{String(value).padStart(2,"0")}</b></span><ArrowUpRight size={13} className="stat-arrow"/></button>)}</div>
- <div className="desk-grid"><section className="panel"><SectionHead title="Priority accounts" aside="Ranked by fit and dated buying signals."><LinkButton onClick={()=>go("prospects")}>View all</LinkButton></SectionHead><Table rows={ranked.slice(0,5)} compact go={go}/></section>
- <section className="panel feed-panel"><SectionHead title="Signal feed" aside="Recent company announcements."/><div className="feed-list">{events.slice(0,4).map(({a,p})=><button key={p.id} onClick={()=>go("account",a.id,"Evidence")}><span className={"signal-dot "+p.kind}/><span className="feed-item"><small>{a.name}<i/> <DateText value={p.published}/></small><strong>{p.title}</strong><span>{signalLabels[p.kind]}</span></span><ArrowUpRight size={14}/></button>)}{!events.length&&<Empty title="No dated signals yet"/>}</div></section></div></>;
+
+export function Customer({s,act,go,busy,view}){
+ const [fields,setFields]=useState(()=>structuredClone(s.icp.fields)),[exp,setExp]=useState(()=>s.icp.expansions.map(x=>x.status));
+ const fresh=view.id==="new";
+ async function approve(){
+  const ok=await act("profile",null,{fields,expansions:s.icp.expansions.map((e,i)=>exp[i]||e.status),approved:true});
+  if(ok&&await act("discover"))go("prospects","run");
+ }
+ const set=(k,patch)=>setFields(f=>({...f,[k]:{...f[k],...patch}}));
+ return <section className={"screen narrow"+(fresh?" fresh":"")}>
+  <h1>Who should buy {s.product.name}</h1>
+  <p className="lede">Each line is a guess with a confidence and a reason. Edit anything that looks wrong. Nothing is searched until you approve.</p>
+  <ol className="icp">{Object.entries(fields).map(([k,f],i)=><li key={k} className={f.enabled?"":"off"} style={{"--i":i}}>
+   <div className="icp-head"><label htmlFor={"icp-"+k}>{f.label}</label><span className="conf" aria-hidden="true"><i style={{"--w":Math.round(f.confidence*100)+"%"}}/></span><small>{Math.round(f.confidence*100)}% sure</small></div>
+   <input id={"icp-"+k} value={f.value} disabled={!f.enabled} onChange={e=>set(k,{value:e.target.value})}/>
+   <p>{f.reason}</p>
+   <label className="toggle"><input type="checkbox" checked={f.enabled} onChange={e=>set(k,{enabled:e.target.checked})}/>Use</label>
+  </li>)}</ol>
+  {s.icp.expansions.length>0&&<div className="expand"><h2>Also worth trying</h2><div>{s.icp.expansions.map((x,i)=>{const on=(exp[i]||x.status)==="Accepted";return <button key={x.name} type="button" aria-pressed={on} className={"pill"+(on?" on":"")} onClick={()=>{const n=[...exp];n[i]=on?"Suggested":"Accepted";setExp(n);}} title={x.reason}>{on&&<Check size={13}/>}{x.name}</button>;})}</div></div>}
+  <div className="row sticky-actions"><button className="btn primary" disabled={busy} onClick={approve}>Approve and find companies</button><span className="hint">{s.icp.approved?"Already approved. Approving again reruns the search.":"The search starts as soon as you approve."}</span></div>
+ </section>;
 }
-export function Prospects({s,act,go,ranked,busy,ready}){
- const [q,setQ]=useState(""),[tier,setTier]=useState("All tiers"),[order,setOrder]=useState("Priority");
- const rows=ranked.filter(a=>(tier==="All tiers"||tier===a.scoring.tier)&&(a.name+" "+a.domain+" "+a.segment).toLowerCase().includes(q.toLowerCase()));
- if(order==="Name")rows.sort((a,b)=>a.name.localeCompare(b.name));if(order==="Recent signal")rows.sort((a,b)=>(featureSource(b)?.published||"").localeCompare(featureSource(a)?.published||""));
- return <><PageHead title="Prospects" sub="Companies that match the approved customer profile."><button className="btn primary" disabled={busy||!ready} onClick={()=>s.icp.approved?act("discover",null,{},"Discovery finished. The ranked accounts are ready."):go("profile")}><Radar size={16}/>{s.icp.approved?"Run discovery":"Review target profile"}</button></PageHead>
- <section className="panel"><SectionHead title="Account research" aside={s.mode==="live"?"Public evidence is checked before it enters the ranking.":"The demo uses a dated snapshot of public sources."}><Chip dot tone={s.icp.approved?"green":"sand"}>{s.icp.approved?"Profile approved":"Review required"}</Chip></SectionHead><div className="toolbar"><div className="searchbox"><Search size={15}/><input aria-label="Search prospects" placeholder="Search companies or segments" value={q} onChange={e=>setQ(e.target.value)}/></div><select aria-label="Filter tier" value={tier} onChange={e=>setTier(e.target.value)}>{["All tiers","A","B","C"].map(v=><option key={v} value={v}>{v.length===1?"Tier "+v:v}</option>)}</select><select aria-label="Sort prospects" value={order} onChange={e=>setOrder(e.target.value)}>{["Priority","Recent signal","Name"].map(v=><option key={v}>{v}</option>)}</select></div>
- <Table rows={rows} go={go}/><div className="table-foot">{rows.length} of {ranked.length} accounts<span>Source snapshot · <DateText value={s.asOf} long/></span></div></section></>;
+
+const stages=["Searching for companies that match the profile","Reading pricing pages, changelogs and announcements","Checking every quote against the page it came from","Ranking by fit, timing and evidence"];
+function DiscoveryRun({s,ranked,done}){
+ const quotes=ranked.flatMap(a=>a.sources.map(src=>({a,src}))).slice(0,6), total=ranked.reduce((n,a)=>n+a.sources.length,0);
+ const [step,setStep]=useState(0);
+ useEffect(()=>{const t=[900,1900,3900,4700].map((ms,i)=>setTimeout(()=>setStep(i+1),ms));const end=setTimeout(done,5500);return ()=>{t.forEach(clearTimeout);clearTimeout(end);};},[done]);
+ return <div className="run" role="status" aria-live="polite">
+  <ol>{stages.map((x,i)=><li key={x} className={step>i?"ok":step===i?"now":""}><span className="mark-icon">{step>i?<Check size={14} strokeWidth={2.5}/>:step===i?<LoaderCircle size={14} className="spin"/>:null}</span>{x}{i===2&&step>=2&&<span className="count"><Num value={step>2?total:Math.ceil(total/2)}/> of {total} confirmed</span>}</li>)}</ol>
+  {step>=2&&<div className="run-quotes">{quotes.map(({a,src},i)=><p key={src.id} style={{"--d":i*300+"ms"}}><b>{a.name}</b><mark>{src.quote}</mark><Check size={14} className="ok"/></p>)}</div>}
+  {s.mode!=="live"&&<p className="hint">Replaying the saved research from <DateText value={s.asOf} long/>.</p>}
+ </div>;
+}
+
+export function Prospects({s,act,go,busy,ready,ranked,view}){
+ const [running,setRunning]=useState(()=>view.id==="run"&&!reduced());
+ const stop=useCallback(()=>setRunning(false),[]);
+ if(!s.icp.approved)return <section className="screen narrow"><h1>Approve a customer profile first</h1><p className="lede">Prospects come from the profile you approve.</p><button className="btn primary" onClick={()=>go("customer")}>Review the profile</button></section>;
+ return <section className="screen">
+  <div className="head-row"><div><h1>{running?"Looking for companies":ranked.length+" companies need "+s.product.name+" now"}</h1><p className="lede">{running?"Every claim is checked against its source before it can count.":"Ranked by fit, how recent the buying signal is, and how strong the evidence is. Open one to build its case."}</p></div>
+   {!running&&<button className="btn" disabled={busy||!ready} onClick={async()=>{if(await act("discover"))setRunning(!reduced());}}>Search again</button>}</div>
+  {running?<DiscoveryRun s={s} ranked={ranked} done={stop}/>:
+  <ol className="prospects">{ranked.map((a,i)=>{const src=featureSource(a);const m=s.messages[a.id];return <li key={a.id} style={{"--i":i}}><button onClick={()=>go("account",a.id)}>
+   <span className="rank">{i+1}</span><Company a={a}/>
+   <span className="who"><strong>{a.name}</strong><small>{a.segment}</small></span>
+   <span className="why">{src?<><mark>{src.quote}</mark><small>{src.title}, <DateText value={src.published}/></small></>:<small>Fit only</small>}</span>
+   <span className="score"><b>{a.scoring.priority}</b><Tier value={a.scoring.tier}/></span>
+   <span className="state">{m?.status==="Dispatched"?<Chip tone="green">Sent</Chip>:m?<Chip>Draft ready</Chip>:s.reviewedCases[a.id]?<Chip>Math approved</Chip>:null}</span>
+  </button></li>;})}</ol>}
+ </section>;
 }

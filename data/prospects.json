@@ -8,6 +8,9 @@
     "initial": "E",
     "color": "#6F75D6",
     "persona": "Engineering lead for API monetization",
+    "size": "51-200 employees",
+    "sizeNote": "Headcount band is an estimate. Confirm on the company's LinkedIn page.",
+    "region": "United States",
     "sources": [
       {
         "id": "exa-websets",
@@ -44,6 +47,9 @@
     "initial": "F",
     "color": "#D86E3C",
     "persona": "Product engineering lead for pricing and credits",
+    "size": "11-50 employees",
+    "sizeNote": "Headcount band is an estimate. Confirm on the company's LinkedIn page.",
+    "region": "United States",
     "sources": [
       {
         "id": "firecrawl-pricing",
@@ -92,6 +98,9 @@
     "initial": "M",
     "color": "#59845B",
     "persona": "Engineering lead for usage and billing",
+    "size": "51-200 employees",
+    "sizeNote": "Headcount band is an estimate. Confirm on the company's LinkedIn page.",
+    "region": "United States",
     "sources": [
       {
         "id": "modal-pricing",
@@ -140,6 +149,9 @@
     "initial": "B",
     "color": "#5A85B2",
     "persona": "Product lead for developer plans and usage",
+    "size": "51-200 employees",
+    "sizeNote": "Headcount band is an estimate. Confirm on the company's LinkedIn page.",
+    "region": "United States",
     "sources": [
       {
         "id": "browserbase-pricing",
@@ -176,6 +188,9 @@
     "initial": "T",
     "color": "#A073A8",
     "persona": "Product lead for API plans and developer growth",
+    "size": "11-50 employees",
+    "sizeNote": "Headcount band is an estimate. Confirm on the company's LinkedIn page.",
+    "region": "United States",
     "sources": [
       {
         "id": "tavily-pricing",

@@ -51,5 +51,20 @@ class WorkspaceApiTest(unittest.TestCase):
             providers.meter({"id":"stable","kind":"graph_query","at":"2026-11-24T19:00:00Z","agent":"Researcher","account":"exa","cost":1})
             body=send.call_args.kwargs["json"];self.assertEqual(body["event_id"],"stable");self.assertEqual(body["properties"]["credits"],"1")
 
+    def test_title_normalization(self):
+        for title in ("VP Engineering","Head of Eng","CTO"): self.assertEqual(providers.role_bucket(title),"eng_leader")
+        self.assertEqual(providers.role_bucket("Co-founder"),"founder");self.assertEqual(providers.role_bucket("Designer"),"other")
+
+    def test_writer_agent_shapes_claude_draft(self):
+        packet={"product":{"name":"Flexprice"},"financial":{"net":66500,"cashNet":-10000},
+                "account":{"name":"Exa","persona":"Eng lead","sources":[{"id":"exa-websets","quote":"Usage now draws down","kind":"price_change","verified":True}]}}
+        fake={"subject":"Credits at Exa","body":"Hi","claims":[{"text":"t","source":"exa-websets","quote":"Usage now draws down"}]}
+        with patch.object(providers,"json_model",return_value=fake) as model:
+            out=providers.write_draft(packet,{"revision":True,"revisions":1,"feedback":"Fix $90,000","subject":"a","body":"b"})
+        self.assertEqual(out["next"],"REVIEWER");self.assertEqual(out["sourceIds"],["exa-websets"]);self.assertEqual(out["revisions"],1)
+        sent=model.call_args.args[1];self.assertEqual(sent["figures"]["cashNet"],"-$10,000");self.assertEqual(sent["reviewer_feedback"],"Fix $90,000")
+        with patch.object(providers,"json_model",return_value={"subject":"","body":""}):
+            with self.assertRaises(providers.ProviderError): providers.write_draft(packet,{})
+
 
 if __name__=="__main__": unittest.main()

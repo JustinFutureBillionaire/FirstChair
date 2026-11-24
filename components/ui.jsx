@@ -1,29 +1,50 @@
 "use client";
-import { ArrowUpRight, Check, ChevronRight, CircleHelp, ExternalLink, FileText, Minus, ShieldCheck, X } from "lucide-react";
-import { useEffect, useRef } from "react";
+import { ArrowUpRight, Check, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { signalLabels } from "../lib/scoring.mjs";
-export const asset = name => (process.env.NEXT_PUBLIC_BASE_PATH || "")+"/"+name;
-export function Mark({light=false}){return <img width="30" height="30" alt="" className="mark" src={asset("first-chair-mark-"+(light?"light":"dark")+".png")}/>;}
-export function Company({a,large=false}) {return <span className={"company-mark "+(large?"large":"")} style={{"--co":a.color||"#446c65"}} aria-hidden="true">{a.initial||a.name[0]}</span>;}
-export function Chip({children,tone="quiet",dot=false}){return <span className={"chip "+tone}>{dot&&<i/>}{children}</span>;}
-export function Tier({value}){return <Chip tone={value==="A"?"green":value==="B"?"sand":"quiet"} dot>Tier {value}</Chip>;}
-export function SectionHead({title,aside,children}){return <div className="section-title"><div><h2>{title}</h2>{aside&&<p>{aside}</p>}</div>{children}</div>;}
-export function PageHead({title,sub,children}){return <header className="page-head"><div><h1>{title}</h1>{sub&&<p>{sub}</p>}</div>{children&&<div className="actions">{children}</div>}</header>;}
-export function Empty({title,children,icon:Icon=FileText}){return <div className="empty"><Icon size={24} strokeWidth={1.5}/><h3>{title}</h3>{children&&<p>{children}</p>}</div>;}
-export function DateText({value,long=false}){if(!value)return <>Date unavailable</>;return new Date(value).toLocaleDateString("en-US",{month:long?"long":"short",day:"numeric",year:long?"numeric":undefined,timeZone:"UTC"});}
-export function Proof({source,small=false}){
-  return <article className={"proof "+(small?"compact":"")}><div className="proof-top"><span className="eyebrow">{signalLabels[source.kind]||"Source"}</span><span><DateText value={source.published||source.checked}/>{!source.published&&" · checked"}</span></div><h3>{source.title}</h3><blockquote>“{source.quote}”</blockquote>{!small&&<p>{source.note}</p>}<a className="source-link" href={source.url} target="_blank" rel="noreferrer"><ShieldCheck size={14}/> {new URL(source.url).hostname.replace(/^www\./,"")} <ArrowUpRight size={13}/></a></article>;
+
+export const asset = name => (process.env.NEXT_PUBLIC_BASE_PATH || "") + "/" + name;
+export const reduced = () => typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+export function Mark({ light = false }) { return <img width="26" height="26" alt="" className="mark" src={asset("first-chair-mark-" + (light ? "light" : "dark") + ".png")} />; }
+export function Company({ a, large = false }) { return <span className={"company-mark" + (large ? " large" : "")} style={{ "--co": a.color || "#446c65" }} aria-hidden="true">{a.initial || a.name[0]}</span>; }
+export function Chip({ children, tone = "quiet" }) { return <span className={"chip " + tone}>{children}</span>; }
+export function Tier({ value }) { return <span className={"tier t" + value} title={"Tier " + value}>{value}</span>; }
+export function Empty({ title, children }) { return <div className="empty"><h3>{title}</h3>{children}</div>; }
+export function DateText({ value, long = false }) {
+  if (!value) return <>undated</>;
+  return new Date(value).toLocaleDateString("en-US", { month: long ? "long" : "short", day: "numeric", year: long ? "numeric" : undefined, timeZone: "UTC" });
 }
-export function Modal({title,children,close,wide=false}){
-  const ref=useRef(null);
-  const closeRef=useRef(close); closeRef.current=close;
-  useEffect(()=>{const prev=document.activeElement;const box=ref.current;
-    const target=box.querySelector("[data-focus]")||box;target.focus();const old=document.body.style.overflow;document.body.style.overflow="hidden";
-    function key(e){if(e.key==="Escape")closeRef.current();if(e.key!=="Tab")return;const nodes=[...box.querySelectorAll("a,button,input,select,textarea,[tabindex='0']")].filter(el=>!el.disabled);if(!nodes.length)return;
-      if(e.shiftKey&&(document.activeElement===nodes[0]||document.activeElement===box)){e.preventDefault();nodes.at(-1).focus();}else if(!e.shiftKey&&document.activeElement===nodes.at(-1)){e.preventDefault();nodes[0].focus();}}
-    document.addEventListener("keydown",key);return ()=>{document.removeEventListener("keydown",key);document.body.style.overflow=old;prev?.focus?.();};},[]);
-  return <div className="scrim" onMouseDown={e=>{if(e.target===e.currentTarget)close();}}><section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className={"modal "+(wide?"wide":"")}><div className="modal-title"><h2>{title}</h2><button aria-label="Close dialog" className="icon-button" onClick={close}><X size={19}/></button></div>{children}</section></div>;
+
+// Counts from the previous value to the new one so a changed number visibly moves.
+export function Num({ value, format = v => Math.round(v).toLocaleString("en-US") }) {
+  const [shown, setShown] = useState(value), from = useRef(value);
+  useEffect(() => {
+    if (reduced() || !Number.isFinite(value)) { setShown(value); from.current = value; return; }
+    const start = performance.now(), a = from.current, b = value; let raf;
+    const tick = t => { const k = Math.min(1, (t - start) / 450), e = 1 - (1 - k) ** 3; setShown(a + (b - a) * e); if (k < 1) raf = requestAnimationFrame(tick); else from.current = b; };
+    raf = requestAnimationFrame(tick); return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{format(shown)}</>;
 }
-export function SwitchTabs({tabs,value,onChange,label}){return <div className="tabs" aria-label={label}>{tabs.map(t=><button key={t} className={t===value?"active":""} aria-pressed={t===value} onClick={()=>onChange(t)}>{t}</button>)}</div>;}
-export function LinkButton({children,onClick}){return <button className="text-button" onClick={onClick}>{children}<ChevronRight size={14}/></button>;}
-export function ScoreTrack({score}){return <span className="score-track" aria-label={"Priority "+score}><span><i style={{width:score+"%"}}/></span><b>{score}</b></span>;}
+
+// A verified excerpt: the quote is marked like a highlighter on the source page.
+export function Quote({ source, delay = 0, compact = false }) {
+  return <figure className={"quote" + (compact ? " compact" : "")} style={{ "--d": delay + "ms" }}>
+    <div className="quote-meta"><span>{signalLabels[source.kind] || "Source"}</span><span><DateText value={source.published} /></span></div>
+    <blockquote><mark>{source.quote}</mark></blockquote>
+    {!compact && source.note && <p>{source.note}</p>}
+    <figcaption><Check size={13} className="ok" aria-hidden="true" /><span>Found on</span><a href={source.url} target="_blank" rel="noreferrer">{new URL(source.url).hostname.replace(/^www\./, "")}<ArrowUpRight size={12} /></a></figcaption>
+  </figure>;
+}
+
+export function Modal({ title, children, close }) {
+  const ref = useRef(null), closeRef = useRef(close); closeRef.current = close;
+  useEffect(() => {
+    const prev = document.activeElement, box = ref.current; (box.querySelector("[data-focus]") || box).focus();
+    const key = e => { if (e.key === "Escape") closeRef.current(); };
+    document.addEventListener("keydown", key); return () => { document.removeEventListener("keydown", key); prev?.focus?.(); };
+  }, []);
+  return <div className="scrim" onMouseDown={e => { if (e.target === e.currentTarget) close(); }}><section ref={ref} tabIndex={-1} role="dialog" aria-modal="true" aria-label={title} className="modal"><div className="modal-title"><h2>{title}</h2><button aria-label="Close" className="icon-button" onClick={close}><X size={18} /></button></div>{children}</section></div>;
+}
+export function Tabs({ tabs, value, onChange, label }) { return <div className="tabs" role="tablist" aria-label={label}>{tabs.map(t => <button key={t} role="tab" aria-selected={t === value} className={t === value ? "active" : ""} onClick={() => onChange(t)}>{t}</button>)}</div>; }

@@ -5,7 +5,7 @@ import {financeFields,initialInputs,businessCase} from "../lib/finance.mjs";
 import {initialState,applyAction,inputsFor,precision,draftFor,evaluationPool} from "../lib/workspace.mjs";
 import {orderedAccounts,score} from "../lib/scoring.mjs";
 import {relationship} from "../lib/relationships.mjs";
-import {runRole} from "../lib/handoffs.mjs";
+import {runRole,review} from "../lib/handoffs.mjs";
 import {summarizeBenchmark} from "../lib/benchmark.mjs";
 const seed=JSON.parse(readFileSync(new URL("../data/prospects.json",import.meta.url)));
 const fresh=()=>initialState(seed);
@@ -73,4 +73,13 @@ test("all five Band roles do work and the reviewer sends an unsubstantiated clai
  const s=await action(fresh(),"case","exa",{approve:true}),a=s.accounts[0];const packet={account:a,approved:true,product:s.product,budget:s.credits,financial:businessCase(inputsFor(s,"exa")),body:draftFor(s,a)};
  let role="PLANNER",out={},steps=[];while(role!=="HUMAN"&&steps.length<10){steps.push(role);out=runRole(role,packet,out);role=out.next;}
  assert.deepEqual(steps,["PLANNER","RESEARCHER","ANALYST","WRITER","REVIEWER","WRITER","REVIEWER"]);assert.equal(out.body,packet.body.body);
+});
+test("reviewer checks LLM drafts: quotes must match a saved excerpt and dollars must match the case",async()=>{
+ const s=await action(fresh(),"case","exa",{approve:true}),a=s.accounts.find(x=>x.id==="exa"),checked=a.sources;
+ const p={product:s.product,financial:businessCase(inputsFor(s,"exa"))};
+ const ok={subject:"Hi",body:"Saw Websets moved to credits. Under our assumptions the advantage is $66,500.",claims:[{text:"Websets uses shared credits",source:"exa-websets",quote:"draws down from your existing Exa credits"}]};
+ assert.equal(review(p,ok,checked),null);
+ assert.match(review(p,{...ok,body:"It saves $90,000."},checked),/\$90,000/);
+ assert.match(review(p,{...ok,claims:[{text:"x",source:"exa-websets",quote:"they hate their vendor"}]},checked),/not supported/);
+ assert.match(review(p,{...ok,body:ok.body+" https://evil.test"},checked),/Links/);
 });

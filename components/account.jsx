@@ -1,50 +1,88 @@
 "use client";
 import {useState} from "react";
-import {ArrowLeft,ArrowRight,ArrowUpRight,BookOpen,Check,CircleDollarSign,ExternalLink,FileCheck2,GitBranch,Mail,Network,PenLine,ScanLine,ShieldCheck,Target,Users} from "lucide-react";
+import {ArrowLeft,ArrowUpRight,Check} from "lucide-react";
 import {businessCase,dollars,financeFields,scenarios} from "../lib/finance.mjs";
-import {featureSource,inputsFor} from "../lib/workspace.mjs";
-import {signalLabels} from "../lib/scoring.mjs";
-import {Chip,Company,DateText,Empty,PageHead,Proof,SectionHead,SwitchTabs,Tier} from "./ui";
-const tabs=["Brief","Evidence","Score","Relationships","Business case"];
-function CasePanel({s,a,act,go,busy}){
- const saved=inputsFor(s,a.id),[inputs,setInputs]=useState(()=>structuredClone(saved)),[scenario,setScenario]=useState("Base"),[editing,setEditing]=useState(false);
+import {inputsFor} from "../lib/workspace.mjs";
+import {Chip,Company,Num,Quote,Tier} from "./ui";
+
+const money=v=>dollars(Math.round(v));
+
+function Score({a}){
+ const sc=a.scoring;
+ return <div className="score-card">
+  <div className="big"><b><Num value={sc.priority}/></b><Tier value={sc.tier}/></div>
+  <dl>
+   <div><dt>Fit to your profile</dt><dd><span className="meter"><i style={{"--w":sc.fit*2+"%"}}/></span>{sc.fit} of 50</dd></div>
+   <div><dt>Buying signal</dt><dd><span className="meter"><i style={{"--w":Math.max(0,sc.intent)*2+"%"}}/></span>{sc.intent.toFixed(1)} of 50</dd></div>
+   <div><dt>Evidence strength</dt><dd><span className="meter"><i style={{"--w":sc.quality*100+"%"}}/></span>×{sc.quality.toFixed(2)}</dd></div>
+  </dl>
+  <p>Priority is fit plus signal times evidence strength. Signals lose half their weight every 30 to 90 days.</p>
+ </div>;
+}
+
+function Compare({s,a,model,inputs}){
+ const v=k=>Number(inputs[k].value)||0, inc=a.incumbent;
+ const cols=["Build it in-house",...(inc?[inc.name+" (today)"]:[]),s.product.name];
+ const rows=[
+  ["First-year cost",[money(model.build),...(inc?["Unknown"]:[]),money(model.buy)]],
+  ["Engineering to start",[v("months")+" engineer-months",...(inc?["Already live"]:[]),v("integration")+" engineer-months"]],
+  ["Engineering to keep running",[v("maintenance")+"% of an engineer",...(inc?["Unknown"]:[]),"Vendor maintained"]],
+  ["Switching cost",["None",...(inc?["None"]:[]),inc?"Migration from "+inc.name+", to confirm":money(model.upfront)+" integration"]],
+ ];
+ return <div className="table-scroll"><table className="grid"><thead><tr><th/>{cols.map(c=><th key={c}>{c}</th>)}</tr></thead><tbody>{rows.map(([n,cells])=><tr key={n}><th>{n}</th>{cells.map((c,i)=><td key={i}>{c}</td>)}</tr>)}</tbody></table></div>;
+}
+
+function Money({s,a,act,go,busy}){
+ const saved=inputsFor(s,a.id),[inputs,setInputs]=useState(()=>structuredClone(saved)),[scenario,setScenario]=useState("Base");
  const model=businessCase(inputs,scenario),dirty=JSON.stringify(inputs)!==JSON.stringify(saved),approved=s.reviewedCases[a.id]&&!dirty;
- function change(key,value,origin){setInputs(old=>({...old,[key]:{value:value===""||value===null?null:Number(value),origin:value===""||value===null?"Unknown":origin,source:null}}));}
- async function submit(approve){if(await act("case",a.id,{inputs,approve},approve?"Financial case approved. Your outreach can now reference it.":"Assumptions saved."))setEditing(false);}
- return <div className="stack"><section className="panel case-intro"><div><div className="eyebrow"><CircleDollarSign size={14}/>Year-one comparison</div><h2>Build internally or buy {s.product.name}?</h2><p>{a.incumbent?a.name+" already uses "+a.incumbent.name+". This estimates an alternative internal build. A replacement decision also needs their contract and migration costs.":"Use this as a conversation starter. The build effort and billed volume are assumptions to confirm with "+a.name+"."}</p></div><Chip tone={approved?"green":"sand"} dot>{approved?"Model approved":"Assumptions to review"}</Chip></section>
- <section className="panel"><SectionHead title="Financial scenarios" aside="Changing build effort shows how sensitive the decision is to engineering time."/>
- <div className="scenario-grid">{Object.entries(scenarios).map(([name,factor])=>{const m=businessCase(inputs,name);return <button key={name} className={"scenario "+(name===scenario?"selected":"")} onClick={()=>setScenario(name)} aria-pressed={name===scenario}><span>{name}{name===scenario&&<Check size={15}/>}</span><strong>{m.complete?dollars(m.net):"Incomplete"}</strong><small>{Number((factor*100).toFixed(0))}% of base build effort</small></button>;})}</div>
- {model.complete?<div className="finance-results"><div className="model-left"><div className="eyebrow">Economic advantage</div><div className="model-amount">{dollars(model.net)}</div><p>{model.net>0?"Buying costs less under these inputs.":model.net===0?"The options break even under these inputs.":"Building internally costs less under these inputs."}</p><dl className="values"><div><dt>Internal build, year one</dt><dd>{dollars(model.build)}</dd></div><div><dt>Buy and integrate, year one</dt><dd>{dollars(model.buy)}</dd></div><div><dt>Modeled ROI</dt><dd>{model.roi===null?"Unavailable":Math.round(model.roi)+"%"}</dd></div><div><dt>Economic payback</dt><dd>{model.payback===null?"Beyond year one":model.payback.toFixed(1)+" months"}</dd></div></dl></div><div className="curve"><span className="eyebrow">Cumulative economic advantage</span><Curve values={model.curve}/><div className="cash-note"><strong>{dollars(model.cashNet)} cash impact</strong><span>{model.capacity.toFixed(1)} engineer-months of capacity difference. Released staff time becomes cash savings only when the spend is actually avoidable.</span></div></div></div>:<Empty title="Complete the model">{model.missing} needs a value.</Empty>}</section>
- <section className="panel"><SectionHead title="Model assumptions" aside="Public prices link to their source. Edit the buyer inputs as you learn more."><button className="btn" onClick={()=>setEditing(!editing)}><PenLine size={14}/>{editing?"Close editor":"Edit assumptions"}</button></SectionHead>
- {editing?<form onSubmit={e=>{e.preventDefault();submit(false);}}><div className="form-grid assumption-grid">{Object.entries(financeFields).map(([key,field])=><div key={key} className="assumption"><label htmlFor={"amount-"+key}>{field.label}<small>{field.unit}</small></label><input id={"amount-"+key} type="number" min="0" max={field.max} step="any" value={inputs[key].value??""} onChange={e=>change(key,e.target.value,"User provided")}/><select aria-label={field.label+" source"} value={inputs[key].origin} onChange={e=>change(key,e.target.value==="Unknown"?null:inputs[key].value,e.target.value)}>{(inputs[key].origin==="Public"?["Public","User provided","Assumed","Unknown"]:["User provided","Assumed","Unknown"]).map(x=><option key={x}>{x}</option>)}</select></div>)}</div><div className="panel-actions"><button type="submit" disabled={busy} className="btn">Save assumptions</button><button type="button" className="text-button" onClick={()=>{setInputs(structuredClone(saved));setEditing(false);}}>Discard edits</button></div></form>:
- <div className="table-scroll"><table className="detail-table"><thead><tr><th>Input</th><th>Value</th><th>Origin</th></tr></thead><tbody>{Object.entries(financeFields).map(([key,f])=><tr key={key}><td>{f.label}</td><td>{inputs[key].value==null?"Unknown":f.unit==="$"?dollars(inputs[key].value):inputs[key].value+(f.unit==="%"?"%":" mo")}</td><td>{inputs[key].source?<a className="source-link" href={inputs[key].source} target="_blank" rel="noreferrer">{inputs[key].origin}<ArrowUpRight size={12}/></a>:inputs[key].origin}</td></tr>)}</tbody></table></div>}
- <div className="panel-actions">{approved?<button className="btn primary" disabled={busy} onClick={async()=>{if(s.messages[a.id]||await act("draft",a.id,{channel:"Email"},"Draft ready for your review."))go("outreach",a.id);}}><Mail size={15}/>{s.messages[a.id]?"Open outreach":"Prepare outreach"}</button>:<button className="btn primary" disabled={busy||!model.complete} onClick={()=>submit(true)}><FileCheck2 size={15}/>Approve business case</button>}<small>{approved?"The approved base scenario is available to the writer.":"Approving the base case uses 1 credit."}</small></div></section></div>;
+ const change=(key,value,origin="User provided")=>setInputs(old=>({...old,[key]:{value:value===""||value===null?null:Number(value),origin:value===""||value===null?"Unknown":origin,source:old[key].origin==="Public"&&origin==="Public"?old[key].source:null}}));
+ async function approve(){if(await act("case",a.id,{inputs,approve:true},"Business case approved."))return true;return false;}
+ async function write(){if(s.messages[a.id]||await act("draft",a.id,{channel:"Email"}))go("outreach",a.id,"new");}
+ const top=Math.max(model.build||0,model.buy||0,1);
+ return <div className="money">
+  {model.complete?<>
+  <div className="verdict">
+   <div><p>Year-one advantage of buying {s.product.name}</p><b className={model.net<0?"neg":""}><Num value={model.net} format={money}/></b><p>{model.net>0?"Buying costs less than building under these assumptions.":"Building costs less under these assumptions. Say so in the email, or skip this account."}</p></div>
+   <div className="seg" role="radiogroup" aria-label="Scenario">{Object.keys(scenarios).map(n=><button key={n} role="radio" aria-checked={n===scenario} className={n===scenario?"on":""} onClick={()=>setScenario(n)}>{n}</button>)}</div>
+  </div>
+  <div className="versus">
+   <div><span>Build in-house</span><span className="meter"><i style={{"--w":model.build/top*100+"%"}}/></span><b><Num value={model.build} format={money}/></b></div>
+   <div className="buy"><span>Buy {s.product.name}</span><span className="meter"><i style={{"--w":model.buy/top*100+"%"}}/></span><b><Num value={model.buy} format={money}/></b></div>
+  </div>
+  <label className="slider"><span>How long would {a.name} take to build it? <b>{inputs.months.value} engineer-months</b></span><input type="range" min="0.5" max="12" step="0.5" value={inputs.months.value??4} onChange={e=>change("months",e.target.value)}/></label>
+  <dl className="facts"><div><dt>Return on cost</dt><dd>{model.roi===null?"n/a":<Num value={model.roi} format={v=>Math.round(v)+"%"}/>}</dd></div><div><dt>Pays back in</dt><dd>{model.payback===null?"over a year":model.payback.toFixed(1)+" months"}</dd></div><div><dt>Cash out of pocket</dt><dd><Num value={model.cashNet} format={money}/></dd></div></dl>
+  <p className="hint">The advantage counts engineering time saved. That time turns into cash only if the team would really cut the spend. A positive case does not mean the buyer has budget.</p>
+  </>:<p className="hint">Add a value for {model.missing.toLowerCase()} to finish the model.</p>}
+  <details><summary>Compare the options</summary>{model.complete&&<Compare s={s} a={a} model={model} inputs={inputs}/>}</details>
+  <details><summary>Every assumption and where it came from</summary><div className="table-scroll"><table className="grid assumptions"><tbody>{Object.entries(financeFields).map(([k,f])=><tr key={k}><th><label htmlFor={"in-"+k}>{f.label}</label></th><td><input id={"in-"+k} type="number" min="0" max={f.max} step="any" value={inputs[k].value??""} onChange={e=>change(k,e.target.value)}/><small>{f.unit}</small></td><td>{inputs[k].source?<a href={inputs[k].source} target="_blank" rel="noreferrer">{inputs[k].origin}<ArrowUpRight size={12}/></a>:<Chip tone={inputs[k].origin==="Unknown"?"red":"quiet"}>{inputs[k].origin}</Chip>}</td></tr>)}</tbody></table></div></details>
+  <div className="row">{approved?<><Chip tone="green"><Check size={12}/> Approved</Chip><button className="btn primary" disabled={busy} onClick={write}>{s.messages[a.id]?"Open the email":"Write the email"}</button></>:<button className="btn primary" disabled={busy||!model.complete} onClick={approve}>Approve these numbers</button>}<span className="hint">{approved?"The writer may quote the approved figure.":"Approving uses 1 credit. The email can only quote approved numbers."}</span></div>
+ </div>;
 }
-function Curve({values}){
- const w=360,h=128,pad=12,lo=Math.min(0,...values),hi=Math.max(0,...values),span=hi-lo||1;
- const x=i=>pad+i/12*(w-2*pad),y=v=>h-pad-(v-lo)/span*(h-2*pad);
- const pts=values.map((v,i)=>x(i)+","+y(v)).join(" "),last=values.at(-1);
- return <div className="chart"><svg viewBox={"0 0 "+w+" "+h} role="img" aria-label={"Economic advantage from "+dollars(values[0])+" at month zero to "+dollars(last)+" at month twelve"}>{[0,0.5,1].map(f=><line key={f} x1={pad} x2={w-pad} y1={pad+f*(h-2*pad)} y2={pad+f*(h-2*pad)} stroke="#d3d8ca" strokeDasharray="3 4"/>)}<polygon points={x(0)+","+y(0)+" "+pts+" "+x(12)+","+y(0)} fill="#adc2a8" opacity=".32"/><polyline points={pts} fill="none" stroke="#285343" strokeWidth="2.8" strokeLinejoin="round"/><circle cx={x(12)} cy={y(last)} r="4" fill="#b17737"/></svg><div><span>Month 0</span><span>Month 6</span><span>Month 12</span></div></div>;
+
+function Paths({s,a,act,busy}){
+ const checks=[["warm","Warm introduction","Someone at "+a.name+" used to work at one of your customers."],["displacement","Unhappy with a current vendor","A recent public complaint about the tool they use today."]];
+ return <div className="paths">{checks.map(([k,title,desc])=>{const r=s.graphResults[a.id+":"+k];return <div key={k} className={r?(r.matched?"hit":"miss"):""}>
+  <h3>{title}</h3><p>{r?r.result:desc}</p>
+  {!r&&<button className="btn small" disabled={busy} onClick={()=>act("graph",a.id,{name:k})}>Check (1 credit)</button>}
+ </div>;})}
+ {a.id==="modal"&&!s.product.customers&&<p className="hint">Try it: add Spotify as an existing customer on the product step. Modal's founder used to work there.</p>}
+ </div>;
 }
-function Relations({a,s,act,busy}){
- const items=[["warm","Warm introduction","Check whether a public employment link connects a buyer to a reference customer."],["displacement","Incumbent displacement","Look for a known billing provider and verified recent dissatisfaction."]];
- return <section className="panel"><SectionHead title="Relationship paths" aside="A different outreach route needs evidence for each link."/><div className="relation-map"><span><Company a={a}/><strong>{a.name}</strong></span><span className="edge"/><GitBranch size={20}/><span className="edge"/><span className="node"><Network size={17}/>{a.incumbent?a.incumbent.name:"Public sources"}</span></div>
- {a.incumbent&&<div className="notice"><ShieldCheck size={16}/><div>{a.incumbent.note} <a href={a.incumbent.url} target="_blank" rel="noreferrer">Read customer story ↗</a></div></div>}{a.id==="modal"&&<div className="notice"><Users size={16}/><div>Modal founder Erik Bernhardsson lists Spotify and Better in his work history. A warm path also requires a reference customer your team confirms. <a href="https://erikbern.com/about.html" target="_blank" rel="noreferrer">Read his biography ↗</a></div></div>}
- <div className="pair-grid">{items.map(([name,title,desc])=>{const result=s.graphResults[a.id+":"+name];return <div className="subcard" key={name}><h3>{title}</h3><p>{desc}</p>{result&&<div role="status" className="result-box"><strong>{result.matched?"Path found":"No qualified path"}</strong><p>{result.result}</p></div>}<button className="btn" disabled={busy} onClick={()=>act("graph",a.id,{name},"Relationship query finished.")}><ScanLine size={14}/>Check path · 1 credit</button></div>;})}</div></section>;
-}
+
 export function Account(props){
- const {s,selected,ranked,go,act,busy,view}=props,a=ranked.find(x=>x.id===selected.id);const tab=tabs.includes(view.tab)?view.tab:"Brief";const source=featureSource(a);
- return <><button className="backlink" onClick={()=>go("prospects")}><ArrowLeft size={14}/>Prospects</button><header className="account-head"><div className="company-heading"><Company a={a} large/><div><div className="eyebrow">{a.segment}</div><h1>{a.name}</h1><a href={"https://"+a.domain} target="_blank" rel="noreferrer">{a.domain} <ArrowUpRight size={13}/></a></div></div><div className="account-priority"><Tier value={a.scoring.tier}/><span><b>{a.scoring.priority}</b> / 100 priority</span></div></header>
- <SwitchTabs tabs={tabs} value={tab} onChange={t=>go("account",a.id,t)} label="Account views"/>
- {tab==="Brief"&&<div className="account-grid"><div className="stack"><section className="panel"><SectionHead title="Why this account" aside={a.description}/>{source?<Proof source={source}/>:<Empty title="No verified evidence"/>}<div className="panel-actions"><button className="text-button" onClick={()=>go("account",a.id,"Evidence")}>See all {a.sources.length} sources <ArrowRight size={14}/></button></div></section><section className="panel"><SectionHead title="Financial qualification" aside={"Compare a hypothetical internal build with "+s.product.name+"."}/><div className="panel-actions"><button className="btn primary" onClick={()=>go("account",a.id,"Business case")}><CircleDollarSign size={15}/>Open business case</button></div></section></div>
- <aside className="stack"><section className="panel"><SectionHead title="Buying team"/><div className="panel-body"><span className="eyebrow">Suggested buyer role</span><h3>{a.persona}</h3><p>{a.contact?.email?a.contact.email:"A buyer role is inferred. An address requires a verified contact."}</p>{a.contact&&<Chip>{a.contact.status}</Chip>}<button className="btn space-top" disabled={busy} onClick={()=>act("enrich",a.id,{},"Contact check completed.")}><Users size={15}/>Check contact · 2 credits</button></div></section>
- <section className="panel"><SectionHead title="Outreach route"/><div className="panel-body"><Chip tone="green">{a.route}</Chip><p>{a.incumbent?"Documented incumbent: "+a.incumbent.name+".":"A verified reference connection can open a warmer route."}</p><button className="text-button" onClick={()=>go("account",a.id,"Relationships")}>Explore relationships <ArrowRight size={14}/></button></div></section></aside></div>}
- {tab==="Evidence"&&<section className="panel"><SectionHead title="Evidence ledger" aside="Each excerpt links to the page where it was checked."/><div className="evidence-grid">{a.sources.map(p=><Proof source={p} key={p.id}/>)}</div></section>}
- {tab==="Score"&&<div className="pair-grid score-panels"><section className="panel"><SectionHead title="Profile fit" aside={a.scoring.fit+" of 50 possible points"}/><div className="panel-body">{a.scoring.fits.map(([name,v,max])=><div key={name} className="fit-row"><span>{name}</span><progress value={v} max={max}/><strong>{v}/{max}</strong></div>)}</div></section><section className="panel"><SectionHead title="Buying intent" aside="Dated signals lose weight as they age."/><div className="panel-body"><dl className="values">{a.scoring.signals.map(x=><div key={x.id}><dt>{signalLabels[a.sources.find(p=>p.id===x.id)?.kind]}</dt><dd>{x.points.toFixed(1)} pts</dd></div>)}<div><dt>Evidence quality</dt><dd>{Math.round(a.scoring.quality*100)}%</dd></div></dl><p>Priority = fit + intent × evidence quality. Scored on <DateText value={s.asOf} long/>.</p></div></section></div>}
- {tab==="Relationships"&&<Relations a={a} {...props}/>}
- {tab==="Business case"&&<CasePanel key={a.id} a={a} {...props}/>}</>;
-}
-export function CasePage(props){
- const {s,ranked,go}=props;const [id,setId]=useState(props.view.id||ranked[0]?.id||"");const a=ranked.find(x=>x.id===id)||ranked[0];
- return <><PageHead title="Business cases" sub="Show a buyer what the deal could be worth.">{a&&<label className="inline-label">Account<select value={a.id} onChange={e=>setId(e.target.value)}>{ranked.map(x=><option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}</PageHead>{a?<CasePanel a={a} key={a.id} {...props}/>:<Empty title="Research an account first"><button className="btn" onClick={()=>go("prospects")}>Open prospects</button></Empty>}</>;
+ const {s,selected,ranked,go,act,busy}=props,a=ranked.find(x=>x.id===selected.id);
+ return <section className="screen account">
+  <button className="back" onClick={()=>go("prospects")}><ArrowLeft size={14}/>All prospects</button>
+  <header className="acct-head"><Company a={a} large/><div><h1>{a.name}</h1><p><a href={"https://"+a.domain} target="_blank" rel="noreferrer">{a.domain}</a>, {a.segment.toLowerCase()}</p></div></header>
+  <div className="acct-grid">
+   <div className="acct-main">
+    <section className="part" style={{"--i":0}}><h2><span className="n">1</span>Why now</h2><div className="quotes">{a.sources.map((x,i)=><Quote key={x.id} source={x} delay={i*120}/>)}</div></section>
+    <section className="part" style={{"--i":1}}><h2><span className="n">2</span>Is it worth it for them</h2><Money key={a.id} {...props} a={a}/></section>
+    <section className="part" style={{"--i":2}}><h2><span className="n">3</span>Who to write to</h2>
+     <div className="who-card"><div><b>{a.persona}</b><p>{a.contact?.email?a.contact.email:a.contact?"No verified address found. The demo sends to your team inbox.":"Hunter finds the work email and checks it can receive mail."}</p>{a.contact&&<Chip tone={a.contact.email?"green":"quiet"}>{a.contact.email?"Verified":"Not verified"}</Chip>}</div>{!a.contact&&<button className="btn small" disabled={busy} onClick={()=>act("enrich",a.id)}>Find their email (2 credits)</button>}</div>
+     <Paths {...props} a={a}/></section>
+   </div>
+   <aside className="acct-side"><Score a={a}/></aside>
+  </div>
+ </section>;
 }

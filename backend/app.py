@@ -190,7 +190,10 @@ def band_turn(item:Turn):
                 for source in packet["account"]["sources"]:
                     if providers.normal(source["quote"]) not in providers.normal(docs.get(source["url"],"")):
                         raise providers.ProviderError("A cited excerpt no longer matches its source. Run discovery again.")
-            output=js("role",action={"role":item.role},context={"packet":packet,"prior":job.get("prior",{})})
+            if item.role=="WRITER" and providers.configured()["anthropic"]:
+                output=providers.write_draft(packet,job.get("prior",{}))
+            else:
+                output=js("role",action={"role":item.role},context={"packet":packet,"prior":job.get("prior",{})})
             job["replies"][idx]={"role":item.role,"output":output}
             job["history"].append({"actor":item.role.title(),"title":item.role.title()+" handoff","details":output["summary"],"account":job["action"]["id"],"at":now()})
             job.update(next=output["next"],turn=item.turn+1,prior=output)

@@ -1,13 +1,13 @@
-# SignalScout — Product Requirements Document (PRD)
+# First Chair — Product Requirements Document (PRD)
 
-**Version:** 1.0 (Hackathon MVP)
+**Version:** 1.1 (Hackathon MVP, updated to match the first build)
 **Date:** 2026-11-24
 **Team:** 2 people
 **Status:** Approved for build
 
 ## 1. Summary
 
-SignalScout is an evidence-grounded, multi-agent B2B go-to-market (GTM) engine. A seller describes what they sell; SignalScout infers the Ideal Customer Profile (ICP), discovers companies that need the product **now**, proves every claim with a verified source, builds a customer-specific **business case**, and drafts outreach that a human must approve before sending. Every opportunity is tracked on a pipeline dashboard.
+First Chair is an evidence-grounded, multi-agent B2B go-to-market (GTM) engine. A seller describes what they sell; First Chair infers the Ideal Customer Profile (ICP), discovers companies that need the product **now**, proves every claim with a verified source, builds a customer-specific **business case**, and drafts outreach that a human must approve before sending. Every opportunity is tracked on a pipeline dashboard.
 
 **One-liner:** Find the right buyer, at the right moment, prove why with sources, and show why the purchase pays off.
 
@@ -228,8 +228,9 @@ Tier A ≥ 70 · Tier B 50–69 · Tier C < 50
 
 **Illustrative example (Flexprice, Year 1):**
 - Build in-house: 4 eng-months × $15k = $60k + 20% maintenance for 8 months ($24k) = **$84k** *(assumed)*
-- Flexprice: $199/mo + 0.5% of billed volume *(public)*; at $1M billed ≈ $7.4k, plus 2 weeks integration ≈ $7.5k = **~$14.9k**
-- Net benefit ≈ **$69k** (base scenario)
+- Flexprice Growth: $500/mo + 0.40% of billed volume *(public, flexprice.io/pricing)*; at $1M billed = $10k, plus half an engineer-month of integration ($7.5k) = **$17.5k**
+- Net economic benefit = **$66.5k** (base scenario), including staff time
+- Cash impact = **−$10k** by default, because released engineering time is not cash unless the buyer would actually cut that spend (the "avoidable" input)
 
 **Rules**
 - Staff time gained is shown separately from cash savings.
@@ -297,7 +298,7 @@ One table per prospect: our product vs. the prospect's current approach (includi
 | Reviewer | Verifies citations, checks math and consistency, checks links and data exposure; rejects back to Writer or Researcher | Human (HITL) |
 
 - All agents may share one model with different instructions and tools.
-- Handoffs and rejections are visible in Band Desktop and summarized in SignalScout's "Agent Thinking" feed.
+- Handoffs and rejections are visible in Band Desktop and summarized in First Chair's "Agent Thinking" feed.
 - Schema changes and sends always require human approval.
 - *Integration details to confirm with Band docs / sponsor at kickoff.*
 
@@ -313,18 +314,18 @@ One table per prospect: our product vs. the prospect's current approach (includi
 - Before each billable operation: check access and wallet balance. Insufficient credits → operation blocked with a clear UI message.
 - After success: send usage event.
 - Per-agent credit allocation from the Planner.
-- Two separate financial views: the **buyer's business case** and the **seller's SignalScout usage**.
+- Two separate financial views: the **buyer's business case** and the **seller's First Chair usage**.
 - *API details to confirm with Flexprice docs at kickoff.*
 
 ## 9. Architecture & Tools
 
 | Layer | Tool |
 |---|---|
-| Frontend | Next.js, Tailwind CSS, shadcn/Radix UI → Vercel |
-| Backend worker | Python FastAPI → Railway |
+| Frontend | Next.js (static export) |
+| Backend worker | Python FastAPI; serves the built frontend too (Dockerfile) |
 | LLM | Claude API |
 | Knowledge graph | Neo4j AuraDB (free) |
-| App database | Supabase Postgres |
+| App database | SQLite (single-operator workspace, durable send and meter queues) |
 | Search & extraction | Tavily (Playwright fallback) |
 | Enrichment & verification | Hunter.io |
 | Email | Gmail API (approved test send to team inbox) |
@@ -333,26 +334,21 @@ One table per prospect: our product vs. the prospect's current approach (includi
 | Repository | GitHub (public) |
 | Stretch | Snyk (only if confirmed as scored) |
 
-### Postgres tables (MVP)
-`products`, `icps`, `accounts`, `signals`, `sources`, `contacts`, `business_cases`, `messages`, `approvals`, `activities`, `usage_events`
+### Storage (MVP)
+One SQLite file holds the workspace state plus `commands` (idempotency), `events` (Flexprice retry queue), `dispatch` (send reservations) and `jobs` (Band runs). Supabase was dropped for the hackathon.
 
 ### Key API endpoints (FastAPI)
 | Method | Path | Purpose |
 |---|---|---|
-| POST | `/products` | Create product profile from intake |
-| POST | `/icp/infer` | Generate ICP from product profile |
-| PATCH | `/icp/{id}` | Edit / approve ICP |
-| POST | `/discovery/run` | Run recall + precision discovery (credit-gated) |
-| GET | `/accounts?tier=A` | Ranked prospects with evidence |
-| POST | `/graph/query/{name}` | Run named multi-hop query |
-| POST | `/business-case/{account_id}` | Build business case |
-| POST | `/outreach/{account_id}` | Draft outreach |
-| POST | `/approvals/{message_id}` | Approve / edit / reject |
-| POST | `/send/{message_id}` | Send (requires valid approval hash) |
-| GET | `/dashboard` | Pipeline, attribution, analytics, precision |
+| GET | `/api/status` | Mode and configured providers |
+| GET | `/api/workspace` | Read the workspace |
+| POST | `/api/actions` | Apply one versioned action (`product`, `profile`, `discover`, `graph`, `enrich`, `case`, `draft`, `edit`, `approve`, `reject`, `send`, `stage`, `label`) with an idempotency key |
+| GET | `/api/jobs/{id}` | Progress of a Band draft job |
+| POST | `/api/band/turn` | Band worker handoff (Writer turn calls Claude) |
+| POST | `/api/meter/retry` | Retry queued Flexprice events |
 
 ### Environment variables
-`ANTHROPIC_API_KEY`, `TAVILY_API_KEY`, `HUNTER_API_KEY`, `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `GMAIL_OAUTH_*`, `BAND_*`, `FLEXPRICE_API_KEY`
+`ANTHROPIC_API_KEY`, `TAVILY_API_KEY`, `HUNTER_API_KEY`, `NEO4J_URI`, `NEO4J_USERNAME`, `NEO4J_PASSWORD`, `GOOGLE_*`, `BAND_*`, `FLEXPRICE_*`. See `.env.example`.
 
 ## 10. UI Requirements
 
@@ -378,7 +374,7 @@ One table per prospect: our product vs. the prospect's current approach (includi
 
 | Phase | Person A (backend & agents) | Person B (frontend & money) |
 |---|---|---|
-| 1. Setup | Repo, FastAPI, Neo4j, Supabase, keys | Next.js scaffold, layout, intake form |
+| 1. Setup | Repo, FastAPI, Neo4j, SQLite, keys | Next.js scaffold, layout, intake form |
 | 2. Thin pipeline | Tavily discovery → Claude extraction with citations → save | ICP review UI, prospects grid |
 | 3. Core depth | Citation verifier, scoring, graph writes | Business case calculator + tests, approval queue with hash |
 | 4. Integrations | Band agents + handoffs, Hunter enrichment | Flexprice gating + usage events, dashboard |
