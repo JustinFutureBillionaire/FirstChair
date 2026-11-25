@@ -2,7 +2,7 @@
 import {useState} from "react";
 import {Check,Copy,Lock,LockOpen,Send,X} from "lucide-react";
 import {activityLabels,allocation,conversion,inputsFor,precision,rates,stageNames,evaluationPool} from "../lib/workspace.mjs";
-import {businessCase} from "../lib/finance.mjs";
+import {businessCase,dollars} from "../lib/finance.mjs";
 import {roles,runRole} from "../lib/handoffs.mjs";
 import {Chip,Company,DateText,Empty,Modal,Tabs} from "./ui";
 import {Benchmark,CreditBlockTest,benchmarkResult} from "./demo";
@@ -13,7 +13,7 @@ const roleName={PLANNER:"Planner",RESEARCHER:"Researcher",ANALYST:"Analyst",WRIT
 function handoff(s,a,m){
  if(s.mode==="live"){
   const names=roles.map(r=>roleName[r]);
-  return s.activity.filter(x=>x.account===a.id&&names.includes(x.actor)).slice(0,8).reverse().map(x=>({who:x.actor,text:x.details||x.title,bad:/reject/i.test(x.details+x.title)}));
+  return s.activity.filter(x=>x.account===a.id&&names.includes(x.actor)&&/handoff$/.test(x.title)).slice(0,9).reverse().map(x=>({who:x.actor,text:x.details||x.title,bad:/reject/i.test(x.details+x.title)}));
  }
  const packet={account:a,approved:!!s.reviewedCases[a.id],product:s.product,budget:s.credits,financial:businessCase(inputsFor(s,a.id)),body:m};
  const out=[];let role="PLANNER",prior={};
@@ -22,13 +22,13 @@ function handoff(s,a,m){
 }
 
 // Marks which parts of the email came from a verified source and which from the approved math.
-function tailored(body,sources){
+function tailored(body,sources,approved){
  const esc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&");
  const titles=sources.map(x=>x.title).filter(Boolean);
  const re=new RegExp("(“(?:"+(titles.map(esc).join("|")||"(?!)")+")”|\\$\\d[\\d,]*)","g");
  return body.split(re).map((part,i)=>{
   if(i%2===0)return part;
-  if(part.startsWith("$"))return <u key={i} title="From the approved business case">{part}</u>;
+  if(part.startsWith("$"))return approved.has(part.replace(/[,.]+$/,""))?<u key={i} title="From the approved business case">{part}</u>:part;
   const src=sources.find(x=>part.includes(x.title));
   return <mark key={i} title={src?"Verified: "+src.quote:""}>{part}</mark>;
  });
@@ -38,6 +38,7 @@ function Letter({s,a,m,act,busy,notify,go,animate}){
  const [edit,setEdit]=useState(false),[form,setForm]=useState({recipient:m.recipient,subject:m.subject,body:m.body});
  const sent=m.status==="Dispatched",email=m.channel==="Email",steps=handoff(s,a,m);
  const srcs=a.sources.filter(x=>m.sourceIds.includes(x.id));
+ const fin=businessCase(inputsFor(s,a.id)),approved=new Set(["net","build","buy","cashNet"].map(k=>fin[k]).filter(Number.isFinite).map(v=>dollars(Math.abs(v))));
  return <div className={"compose"+(animate?" animate":"")}>
   <ol className="handoff" aria-label="Agent handoff">{[...steps,{who:"You",text:sent?"Approved and sent.":m.status==="Approved"?"Approved. Ready to send.":"Read it, edit if needed, approve the exact text."}].map((x,i)=><li key={i} className={(x.bad?"bad":"")+(x.who==="You"?" you":"")} style={{"--d":i*420+"ms"}}><b>{x.who}</b><span>{x.text}</span></li>)}</ol>
   <article className={"letter "+(m.status==="Approved"?"locked":"")+(sent?" sent":"")} style={{"--d":(steps.length+1)*420+"ms"}}>
@@ -48,7 +49,7 @@ function Letter({s,a,m,act,busy,notify,go,animate}){
     <label className="field">Message<textarea rows="9" required value={form.body} onChange={e=>setForm({...form,body:e.target.value})}/></label>
     <div className="row"><button className="btn primary" disabled={busy}>Save</button><button type="button" className="btn" onClick={()=>setEdit(false)}>Cancel</button></div></form>:<>
    <dl className="envelope"><div><dt>To</dt><dd>{m.recipient}</dd></div><div><dt>Subject</dt><dd>{m.subject}</dd></div></dl>
-   <p className="body">{tailored(m.body,srcs)}</p>
+   <p className="body">{tailored(m.body,srcs,approved)}</p>
    <p className="legend"><mark>Highlighted</mark> comes from a verified source. <u>Underlined</u> comes from the approved numbers.</p></>}
    {m.approval&&!edit&&<p className="fingerprint">Fingerprint {m.approval.hash.slice(0,16)}. Changing one character clears it.</p>}
    {!sent&&!edit&&<div className="row">
